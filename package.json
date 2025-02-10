@@ -1,10 +1,10 @@
 {
   "name": "calendar-booking",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "api/index.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node api/index.js"
   },
   "dependencies": {
     "express": "^4.17.1",

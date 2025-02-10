@@ -4,7 +4,7 @@ const { Client } = pkg; // Replace sqlite3 with pg
 import bodyParser from "body-parser";
 import cors from "cors";
 import cron from "node-cron";
-import { sendEmail } from "./email.js";
+import { sendEmail } from "../email.js";
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
 import bcrypt from "bcrypt";
@@ -56,31 +56,31 @@ const createTables = async () => {
     try {
         await client.query(`
             CREATE TABLE IF NOT EXISTS bookings (
-                id SERIAL PRIMARY KEY,
-                phone_number TEXT NOT NULL,
-                first_name TEXT NOT NULL,
-                last_name TEXT NOT NULL,
-                day DATE NOT NULL,
-                start_hour INTEGER NOT NULL,
-                end_hour INTEGER NOT NULL,
-                role TEXT DEFAULT 'user'
+                                                    id SERIAL PRIMARY KEY,
+                                                    phone_number TEXT NOT NULL,
+                                                    first_name TEXT NOT NULL,
+                                                    last_name TEXT NOT NULL,
+                                                    day DATE NOT NULL,
+                                                    start_hour INTEGER NOT NULL,
+                                                    end_hour INTEGER NOT NULL,
+                                                    role TEXT DEFAULT 'user'
             )
         `);
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS notifications (
-                id SERIAL PRIMARY KEY,
-                email TEXT NOT NULL,
-                day DATE NOT NULL,
-                UNIQUE(email, day)
-            )
+                                                         id SERIAL PRIMARY KEY,
+                                                         email TEXT NOT NULL,
+                                                         day DATE NOT NULL,
+                                                         UNIQUE(email, day)
+                )
         `);
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS admins (
-                id SERIAL PRIMARY KEY,
-                first_name TEXT NOT NULL,
-                password_hash TEXT NOT NULL
+                                                  id SERIAL PRIMARY KEY,
+                                                  first_name TEXT NOT NULL,
+                                                  password_hash TEXT NOT NULL
             )
         `);
 
