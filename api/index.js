@@ -16,7 +16,7 @@ import bcrypt from "bcrypt";
 // const __dirname = dirname(__filename);
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -323,7 +323,7 @@ cron.schedule("0 0 * * 1", async () => {
 
 // Start the server
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server running on port ${port}`);
 });
 
 
