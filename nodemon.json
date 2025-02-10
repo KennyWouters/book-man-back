@@ -1,0 +1,9 @@
+{
+  "env": {
+    "DB_USER": "neondb_owner",
+    "DB_PASSWORD" : "npg_VAOqNSZw9T8Q",
+    "DB_HOST" : "ep-calm-wildflower-a2p78smq-pooler.eu-central-1.aws.neon.tech",
+    "DB_NAME" : "neondb",
+    "DB_SSLMODE" : "require"
+  }
+}
