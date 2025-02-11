@@ -7,7 +7,7 @@ import cron from "node-cron";
 import { sendEmail } from "../email.js";
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
