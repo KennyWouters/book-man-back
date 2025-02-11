@@ -328,7 +328,7 @@ app.listen(port, () => {
 
 
 
-const password = "admin123"; // Replace with the desired password
-const saltRounds = 10;
-const hash = await bcrypt.hash(password, saltRounds);
-console.log(hash); // Use this hash in the INSERT query
+// const password = "admin123"; // Replace with the desired password
+// const saltRounds = 10;
+// const hash = await bcrypt.hash(password, saltRounds);
+// console.log(hash); // Use this hash in the INSERT query
