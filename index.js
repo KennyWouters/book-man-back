@@ -16,7 +16,7 @@ import bcrypt from "bcrypt";
 // const __dirname = dirname(__filename);
 
 const app = express();
-const port = 3001;
+// const port = 3001;
 
 // Middleware
 app.use(cors());
@@ -44,12 +44,16 @@ const isAdminAuthenticated = (req, res, next) => {
 };
 
 const client = new Client({
-    connectionString: "postgresql://neondb_owner:npg_VAOqNSZw9T8Q@ep-calm-wildflower-a2p78smq-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+    connectionString: "postgres://ueahs5s5irgpst:p7c554315bf7d3cd25f50c6c287bd748c93ff3b457ae2aeac27f06b3e965f0237@c9tiftt16dc3eo.cluster-czz5s0kz4scl.eu-west-1.rds.amazonaws.com:5432/dctvdgvj4sv9pr"
+,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 client.connect()
-    .then(() => console.log("Connected to NeonDB PostgreSQL"))
-    .catch((err) => console.error("Error connecting to NeonDB PostgreSQL:", err));
+    .then(() => console.log("Connected to Heroku PostgreSQL"))
+    .catch((err) => console.error("Error connecting to Heroku PostgreSQL:", err));
 
 
 const createTables = async () => {
@@ -322,9 +326,7 @@ cron.schedule("0 0 * * 1", async () => {
 
 
 // Start the server
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
+app.listen(process.env.PORT || 3001, () => console.log('API running on ', 3001))
 
 
 
