@@ -305,14 +305,14 @@ app.get('/api/admin/bookings', async (req, res) => {
 });
 
 // Schedule a task to delete all bookings every Monday at midnight
-cron.schedule("0 0 * * 1", async () => {
-    try {
-        await client.query(`DELETE FROM bookings`);
-        console.log("All bookings deleted (scheduled Monday cleanup).");
-    } catch (err) {
-        console.error("Error deleting bookings:", err);
-    }
-});
+// cron.schedule("0 0 * * 1", async () => {
+//     try {
+//         await client.query(`DELETE FROM bookings`);
+//         console.log("All bookings deleted (scheduled Monday cleanup).");
+//     } catch (err) {
+//         console.error("Error deleting bookings:", err);
+//     }
+// });
 
 // Check for availability and notify users every hour
 // cron.schedule("0 * * * *", async () => {
@@ -328,7 +328,7 @@ app.listen(port, () => {
 
 
 
-// const password = "admin123"; // Replace with the desired password
-// const saltRounds = 10;
-// const hash = await bcrypt.hash(password, saltRounds);
-// console.log(hash); // Use this hash in the INSERT query
+const password = "admin123"; // Replace with the desired password
+const saltRounds = 10;
+const hash = await bcrypt.hash(password, saltRounds);
+console.log(hash); // Use this hash in the INSERT query
