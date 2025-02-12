@@ -234,6 +234,39 @@ app.get("/admin", (req, res) => {
 });
 
 // Admin login route (no authentication required)
+
+// app.post("/admin/login", async (req, res) => {
+//     const { firstName, password } = req.body;
+//
+//     try {
+//         // Fetch the admin from the database
+//         const adminQuery = await client.query(
+//             `SELECT * FROM admins WHERE first_name = $1`,
+//             [firstName]
+//         );
+//
+//         if (adminQuery.rows.length === 0) {
+//             return res.status(401).json({ error: "Invalid credentials" });
+//         }
+//
+//         const admin = adminQuery.rows[0];
+//
+//         // Compare the provided password with the hashed password
+//         const isPasswordValid = await bcrypt.compare(password, admin.password_hash);
+//         if (!isPasswordValid) {
+//             return res.status(401).json({ error: "Invalid credentials" });
+//         }
+//
+//         // Store the admin's ID in the session
+//         req.session.adminId = admin.id;
+//
+//         // Return the admin ID in the response
+//         res.json({ adminId: admin.id, message: "Login successful" });
+//     } catch (err) {
+//         res.status(500).json({ error: err.message });
+//     }
+// });
+
 app.post("/admin/login", async (req, res) => {
     const { firstName, password } = req.body;
 
@@ -258,6 +291,10 @@ app.post("/admin/login", async (req, res) => {
 
         // Store the admin's ID in the session
         req.session.adminId = admin.id;
+
+        // Delete previous bookings
+        const today = new Date().toISOString().split("T")[0];
+        await client.query(`DELETE FROM bookings WHERE day < $1`, [today]);
 
         // Return the admin ID in the response
         res.json({ adminId: admin.id, message: "Login successful" });
@@ -333,7 +370,7 @@ app.listen(PORT, () => {
 
 
 
-const password = "admin123"; // Replace with the desired password
-const saltRounds = 10;
-const hash = await bcrypt.hash(password, saltRounds);
-console.log(hash); // Use this hash in the INSERT query
+// const password = "admin123"; // Replace with the desired password
+// const saltRounds = 10;
+// const hash = await bcrypt.hash(password, saltRounds);
+// console.log(hash); // Use this hash in the INSERT query
