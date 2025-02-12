@@ -269,7 +269,6 @@ app.get("/admin", (req, res) => {
 
 app.post("/admin/login", async (req, res) => {
     const { firstName, password } = req.body;
-
     try {
         // Fetch the admin from the database
         const adminQuery = await client.query(
