@@ -293,7 +293,12 @@ app.post("/admin/login", async (req, res) => {
 
         // Delete previous bookings
         const today = new Date().toISOString().split("T")[0];
-        await client.query(`DELETE FROM bookings WHERE day < $1`, [today]);
+        try {
+            await client.query(`DELETE FROM bookings WHERE day < $1`, [today]);
+        } catch (deleteError) {
+            console.error("Error deleting previous bookings:", deleteError);
+            return res.status(500).json({ error: "Error deleting previous bookings" });
+        }
 
         // Return the admin ID in the response
         res.json({ adminId: admin.id, message: "Login successful" });
