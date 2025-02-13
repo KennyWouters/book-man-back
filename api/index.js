@@ -192,7 +192,7 @@ const notifyUsers = async (day) => {
         for (const row of notificationsQuery.rows) {
             const { email } = row;
             const subject = "Une place s'est libérée !";
-            const text = `Bonjour, une place s'est libérée pour le ${day}. Réservez vite !`;
+            const text = `Bonjour, une place à l'atelier bois s'est libérée pour le ${day}. Réservez vite !`;
 
             await sendEmail(email, subject, text);
 
@@ -212,6 +212,7 @@ app.delete("/api/bookings/:id", async (req, res) => {
     const { id } = req.params;
 
     try {
+        // Delete the booking and get the day of the deleted booking
         const deleteQuery = await client.query(
             `DELETE FROM bookings WHERE id = $1 RETURNING day`,
             [id]
@@ -219,7 +220,19 @@ app.delete("/api/bookings/:id", async (req, res) => {
 
         if (deleteQuery.rows.length > 0) {
             const { day } = deleteQuery.rows[0];
-            await notifyUsers(day);
+
+            // Check the number of remaining bookings for the given day
+            const countQuery = await client.query(
+                `SELECT COUNT(*) as count FROM bookings WHERE day = $1`,
+                [day]
+            );
+
+            const remainingBookings = countQuery.rows[0].count;
+
+            // If the deleted booking was the tenth booking, notify users
+            if (remainingBookings === 9) {
+                await notifyUsers(day);
+            }
         }
 
         res.json({ message: "Booking deleted successfully." });
