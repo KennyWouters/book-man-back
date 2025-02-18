@@ -219,7 +219,16 @@ app.delete("/api/bookings/:id", async (req, res) => {
 
         if (deleteQuery.rows.length > 0) {
             const { day } = deleteQuery.rows[0];
-            await notifyUsers(day);
+
+            // Check if the date is now available
+            const countQuery = await client.query(
+                `SELECT COUNT(*) as count FROM bookings WHERE day = $1`,
+                [day]
+            );
+
+            if (countQuery.rows[0].count < 10) {
+                await notifyUsers(day);
+            }
         }
 
         res.json({ message: "Booking deleted successfully." });
