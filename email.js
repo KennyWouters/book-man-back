@@ -1,18 +1,21 @@
 // email.js
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const transporter = nodemailer.createTransport({
-    service: "gmail", // Use your email service (e.g., Gmail, SendGrid)
+    service: "outlook", // Use your email service (e.g., Gmail, SendGrid)
     auth: {
-        user: "your-email@gmail.com", // Your email address
-        pass: "your-email-password", // Your email password or app-specific password
+        user: process.env.EMAIL_USER, // Your email address from environment variable
+        pass: process.env.EMAIL_PASS, // Your email password from environment variable
     },
 });
 
 export const sendEmail = async (to, subject, text) => {
     try {
         const mailOptions = {
-            from: "your-email@gmail.com", // Sender email
+            from: process.env.EMAIL_USER, // Sender email
             to, // Recipient email
             subject, // Email subject
             text, // Email body
