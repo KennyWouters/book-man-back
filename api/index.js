@@ -267,6 +267,9 @@ app.get("/admin", (req, res) => {
 
 
 app.post("/admin/login", async (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "https://book-man-swart.vercel.app");
+    res.setHeader("Access-Control-Allow-Credentials", "true"); // Important for cookies
+
     const { firstName, password } = req.body;
     try {
         // Fetch the admin from the database
