@@ -258,159 +258,165 @@ app.get("/admin", (req, res) => {
 
 
 app.post("/admin/login", async (req, res) => {
-    const { firstName, password } = req.body;
-    try {
-        // Fetch the admin from the database
-        const adminQuery = await pool.query(
-            `SELECT * FROM admins WHERE first_name = $1`,
-            [firstName]
-        );
-
-        if (adminQuery.rows.length === 0) {
-            return res.status(401).json({ error: "Invalid credentials" });
-        }
-
-        const admin = adminQuery.rows[0];
-
-        // Compare the provided password with the hashed password
-        const isPasswordValid = await bcrypt.compare(password, admin.password_hash);
-        if (!isPasswordValid) {
-            return res.status(401).json({ error: "Invalid credentials" });
-        }
-
-        // Store the admin's ID in the session
-        req.session.adminId = admin.id;
-
-        // Delete previous bookings
-        const today = new Date().toISOString().split("T")[0];
+    app.post("/admin/login", async (req, res) => {
+        const {firstName, password} = req.body;
         try {
-            await pool.query(`DELETE FROM bookings WHERE day < $1`, [today]);
-        } catch (deleteError) {
-            console.error("Error deleting previous bookings:", deleteError);
-            return res.status(500).json({ error: "Error deleting previous bookings" });
-        }
+            // Fetch the admin from the database
+            const adminQuery = await pool.query(
+                `SELECT *
+                 FROM admins
+                 WHERE first_name = $1`,
+                [firstName]
+            );
 
-        // Return the admin ID in the response
-        res.json({ adminId: admin.id, message: "Login successful" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+            if (adminQuery.rows.length === 0) {
+                return res.status(401).json({error: "Invalid credentials"});
+            }
+
+            const admin = adminQuery.rows[0];
+
+            // Compare the provided password with the hashed password
+            const isPasswordValid = await bcrypt.compare(password, admin.password_hash);
+            if (!isPasswordValid) {
+                return res.status(401).json({error: "Invalid credentials"});
+            }
+
+            // Store the admin's ID in the session
+            req.session.adminId = admin.id;
+            console.log("Admin ID set in session:", req.session.adminId); // Log the admin ID
+
+            // Save the session
+            req.session.save((err) => {
+                if (err) {
+                    console.error("Error saving session:", err);
+                    return res.status(500).json({error: "Error saving session"});
+                }
+
+                // Return the admin ID in the response
+                res.json({adminId: admin.id, message: "Login successful"});
+            });
+        } catch (err) {
+            res.status(500).json({error: err.message});
+        }
+    });
 
 // Apply the isAdminAuthenticated middleware to all /admin routes
-app.use("/admin", isAdminAuthenticated);
+    app.use("/admin", isAdminAuthenticated);
 
 // Admin dashboard route (requires authentication)
-app.get("/admin/dashboard", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "admin-dashboard.html"));
-});
+    app.get("/admin/dashboard", (req, res) => {
+        res.sendFile(path.join(__dirname, "public", "admin-dashboard.html"));
+    });
 
 // Admin logout route (requires authentication)
-app.get("/admin/logout", (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            console.error("Error destroying session:", err);
-            return res.status(500).json({ error: "Could not log out" });
-        }
+    app.get("/admin/logout", (req, res) => {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error("Error destroying session:", err);
+                return res.status(500).json({error: "Could not log out"});
+            }
 
-        // Clear the session cookie
-        res.clearCookie("connect.sid"); // "connect.sid" is the default session cookie name
-        res.redirect("/admin"); // Redirect to the login page
+            // Clear the session cookie
+            res.clearCookie("connect.sid"); // "connect.sid" is the default session cookie name
+            res.redirect("/admin"); // Redirect to the login page
+        });
     });
-});
 
 // Admin bookings API route (requires authentication)
-app.get('/api/admin/bookings', async (req, res) => {
-    const { day } = req.query;
+    app.get('/api/admin/bookings', async (req, res) => {
+        const {day} = req.query;
 
-    if (!day) {
-        return res.status(400).json({ error: 'Day parameter is required' });
-    }
-    try {
-        const bookingsQuery = await pool.query(
-            `SELECT * FROM bookings WHERE day = $1`,
-            [day]
-        );
-        res.json(bookingsQuery.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+        if (!day) {
+            return res.status(400).json({error: 'Day parameter is required'});
+        }
+        try {
+            const bookingsQuery = await pool.query(
+                `SELECT *
+                 FROM bookings
+                 WHERE day = $1`,
+                [day]
+            );
+            res.json(bookingsQuery.rows);
+        } catch (err) {
+            res.status(500).json({error: err.message});
+        }
+    });
 
 // Admin endpoint to update availability
 // Update this endpoint in your server code
-app.put("/api/admin/availability/:day", isAdminAuthenticated, async (req, res) => {
-    const { day } = req.params;
-    const { isOpen, maxBookings } = req.body;
+    app.put("/api/admin/availability/:day", isAdminAuthenticated, async (req, res) => {
+        const {day} = req.params;
+        const {isOpen, maxBookings} = req.body;
 
-    try {
-        await pool.query(
-            `INSERT INTO availability_settings (day, is_open, max_bookings)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (day)
-                 DO UPDATE SET
-                               is_open = $2,
-                               max_bookings = $3,
-                               updated_at = CURRENT_TIMESTAMP`,
-            [day, isOpen, maxBookings]
-        );
+        try {
+            await pool.query(
+                `INSERT INTO availability_settings (day, is_open, max_bookings)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (day)
+                     DO UPDATE SET is_open      = $2,
+                                   max_bookings = $3,
+                                   updated_at   = CURRENT_TIMESTAMP`,
+                [day, isOpen, maxBookings]
+            );
 
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+            res.json({success: true});
+        } catch (err) {
+            res.status(500).json({error: err.message});
+        }
+    });
 
 // Modified availability check endpoint
-app.get("/api/availability/:day", async (req, res) => {
-    const { day } = req.params;
+    app.get("/api/availability/:day", async (req, res) => {
+        const {day} = req.params;
 
-    try {
-        // First check if the day is open
-        const settingsQuery = await pool.query(
-            `SELECT is_open, max_bookings 
-             FROM availability_settings 
-             WHERE day = $1`,
-            [day]
-        );
+        try {
+            // First check if the day is open
+            const settingsQuery = await pool.query(
+                `SELECT is_open, max_bookings
+                 FROM availability_settings
+                 WHERE day = $1`,
+                [day]
+            );
 
-        // If no settings found, use defaults
-        const settings = settingsQuery.rows[0] || {
-            is_open: true,
-            max_bookings: 10
-        };
+            // If no settings found, use defaults
+            const settings = settingsQuery.rows[0] || {
+                is_open: true,
+                max_bookings: 10
+            };
 
-        if (!settings.is_open) {
-            return res.json({ isFullyBooked: true, isClosed: true });
+            if (!settings.is_open) {
+                return res.json({isFullyBooked: true, isClosed: true});
+            }
+
+            // Check current booking count
+            const countQuery = await pool.query(
+                `SELECT COUNT(*) as count
+                 FROM bookings
+                 WHERE day = $1`,
+                [day]
+            );
+
+            const isFullyBooked = countQuery.rows[0].count >= settings.max_bookings;
+
+            res.json({
+                isFullyBooked,
+                isClosed: false,
+                currentBookings: countQuery.rows[0].count,
+                maxBookings: settings.max_bookings
+            });
+
+        } catch (err) {
+            res.status(500).json({error: err.message});
         }
-
-        // Check current booking count
-        const countQuery = await pool.query(
-            `SELECT COUNT(*) as count 
-             FROM bookings 
-             WHERE day = $1`,
-            [day]
-        );
-
-        const isFullyBooked = countQuery.rows[0].count >= settings.max_bookings;
-
-        res.json({
-            isFullyBooked,
-            isClosed: false,
-            currentBookings: countQuery.rows[0].count,
-            maxBookings: settings.max_bookings
-        });
-
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+    });
 
 
 // Start the server
-const PORT = process.env.PORT || 5432;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    const PORT = process.env.PORT || 5432;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+
 });
 
 
