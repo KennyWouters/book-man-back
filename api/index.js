@@ -282,18 +282,18 @@ app.post("/admin/login", async (req, res) => {
 
         // Store the admin's ID in the session
         req.session.adminId = admin.id;
+        console.log("Admin ID set in session:", req.session.adminId); // Log the admin ID
 
-        // Delete previous bookings
-        const today = new Date().toISOString().split("T")[0];
-        try {
-            await pool.query(`DELETE FROM bookings WHERE day < $1`, [today]);
-        } catch (deleteError) {
-            console.error("Error deleting previous bookings:", deleteError);
-            return res.status(500).json({ error: "Error deleting previous bookings" });
-        }
+        // Save the session
+        req.session.save((err) => {
+            if (err) {
+                console.error("Error saving session:", err);
+                return res.status(500).json({ error: "Error saving session" });
+            }
 
-        // Return the admin ID in the response
-        res.json({ adminId: admin.id, message: "Login successful" });
+            // Return the admin ID in the response
+            res.json({ adminId: admin.id, message: "Login successful" });
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
