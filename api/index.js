@@ -40,7 +40,7 @@ const isAdminAuthenticated = (req, res, next) => {
     if (req.session.adminId) {
         next();
     } else {
-        res.redirect("/admin");
+        res.status(403).json({ error: "Unauthorized access" });
     }
 };
 
