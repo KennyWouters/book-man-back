@@ -1,6 +1,6 @@
 import express from "express";
 import pkg from 'pg';
-const { Client } = pkg; // Replace sqlite3 with pg
+const { Pool } = pkg; // Replace sqlite3 with pg
 import bodyParser from "body-parser";
 import cors from "cors";
 import cron from "node-cron";
@@ -8,6 +8,7 @@ import { sendEmail } from "../email.js";
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
 import bcrypt from "bcryptjs";
+// import { Pool } from 'pg';
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -43,21 +44,21 @@ const isAdminAuthenticated = (req, res, next) => {
     }
 };
 
-const client = new Client({
+const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
     }
 });
 
-client.connect()
+pool.connect()
     .then(() => console.log("Connected to Heroku PostgreSQL"))
     .catch((err) => console.error("Error connecting to Heroku PostgreSQL:", err));
 
 
 const createTables = async () => {
     try {
-        await client.query(`
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS bookings (
                                                     id SERIAL PRIMARY KEY,
                                                     phone_number TEXT NOT NULL,
@@ -70,7 +71,7 @@ const createTables = async () => {
             )
         `);
 
-        await client.query(`
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS notifications (
                                                          id SERIAL PRIMARY KEY,
                                                          email TEXT NOT NULL,
@@ -79,7 +80,7 @@ const createTables = async () => {
                 )
         `);
 
-        await client.query(`
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS admins (
                                                   id SERIAL PRIMARY KEY,
                                                   first_name TEXT NOT NULL,
