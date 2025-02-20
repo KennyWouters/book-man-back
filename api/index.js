@@ -250,6 +250,8 @@ app.delete("/api/bookings/:id", async (req, res) => {
     }
 });
 
+// Apply the isAdminAuthenticated middleware to all /admin routes
+app.use("/admin", isAdminAuthenticated);
 // Serve the admin login page (no authentication required)
 app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "admin", "admin-login.jsx"));
@@ -297,8 +299,7 @@ app.post("/admin/login", async (req, res) => {
     }
 });
 
-// Apply the isAdminAuthenticated middleware to all /admin routes
-app.use("/admin", isAdminAuthenticated);
+
 
 // Admin dashboard route (requires authentication)
 app.get("/admin/dashboard", (req, res) => {
