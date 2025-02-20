@@ -28,7 +28,7 @@ app.use(
         resave: false,
         saveUninitialized: true,
         cookie: {
-            secure: true, // Set to true if using HTTPS
+            secure: false, // Set to true if using HTTPS
             httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
             maxAge: 1000 * 60 * 60 * 24, // Session expiration time (e.g., 1 day)
         },
@@ -250,8 +250,6 @@ app.delete("/api/bookings/:id", async (req, res) => {
     }
 });
 
-// Apply the isAdminAuthenticated middleware to all /admin routes
-app.use("/admin", isAdminAuthenticated);
 // Serve the admin login page (no authentication required)
 app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "admin", "admin-login.jsx"));
@@ -282,24 +280,25 @@ app.post("/admin/login", async (req, res) => {
 
         // Store the admin's ID in the session
         req.session.adminId = admin.id;
-        console.log("Admin ID set in session:", req.session.adminId); // Log the admin ID
 
-        // Save the session
-        req.session.save((err) => {
-            if (err) {
-                console.error("Error saving session:", err);
-                return res.status(500).json({ error: "Error saving session" });
-            }
+        // Delete previous bookings
+        const today = new Date().toISOString().split("T")[0];
+        try {
+            await pool.query(`DELETE FROM bookings WHERE day < $1`, [today]);
+        } catch (deleteError) {
+            console.error("Error deleting previous bookings:", deleteError);
+            return res.status(500).json({ error: "Error deleting previous bookings" });
+        }
 
-            // Return the admin ID in the response
-            res.json({ adminId: admin.id, message: "Login successful" });
-        });
+        // Return the admin ID in the response
+        res.json({ adminId: admin.id, message: "Login successful" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-
+// Apply the isAdminAuthenticated middleware to all /admin routes
+app.use("/admin", isAdminAuthenticated);
 
 // Admin dashboard route (requires authentication)
 app.get("/admin/dashboard", (req, res) => {
