@@ -204,7 +204,8 @@ const notifyUsers = async (day) => {
         for (const row of notificationsQuery.rows) {
             const { email } = row;
             const subject = "Une place s'est libérée à l'atelier bois !";
-            const text = `Bonjour, une place s'est libérée pour le ${day}. Réservez vite !`;
+            const formattedDay = new Date(day).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+            const text = `Bonjour, une place s'est libérée pour le ${formattedDay}. Réservez vite !`;
 
             await sendEmail(email, subject, text);
 
