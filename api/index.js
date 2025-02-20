@@ -209,7 +209,7 @@ const notifyUsers = async (day) => {
             await sendEmail(email, subject, text);
 
             // Optionally, delete the notification after sending the email
-            await client.query(
+            await pool.query(
                 `DELETE FROM notifications WHERE email = $1 AND day = $2`,
                 [email, day]
             );
