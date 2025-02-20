@@ -88,6 +88,17 @@ const createTables = async () => {
             )
         `);
 
+        await pool.query(`
+        CREATE TABLE IF NOT EXISTS availability_settings
+            (
+                day          DATE PRIMARY KEY,
+                is_open      BOOLEAN   DEFAULT true,
+                max_bookings INTEGER   DEFAULT 10,
+                created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         console.log("Tables created or already exist.");
     } catch (err) {
         console.error("Error creating tables:", err);
@@ -123,7 +134,7 @@ app.post("/api/book", async (req, res) => {
 
     try {
         // Check the number of existing bookings for the given day
-        const countQuery = await client.query(
+        const countQuery = await pool.query(
             `SELECT COUNT(*) as count FROM bookings WHERE day = $1`,
             [day]
         );
@@ -133,7 +144,7 @@ app.post("/api/book", async (req, res) => {
         }
 
         // Insert the new booking
-        const insertQuery = await client.query(
+        const insertQuery = await pool.query(
             `INSERT INTO bookings (phone_number, first_name, last_name, day, start_hour, end_hour)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
             [phoneNumber, firstName, lastName, day, startHour, endHour]
@@ -150,7 +161,7 @@ app.get("/api/availability/:day", async (req, res) => {
     const { day } = req.params;
 
     try {
-        const countQuery = await client.query(
+        const countQuery = await pool.query(
             `SELECT COUNT(*) as count FROM bookings WHERE day = $1`,
             [day]
         );
@@ -167,7 +178,7 @@ app.post("/api/notify", async (req, res) => {
     const { email, day } = req.body;
 
     try {
-        const insertQuery = await client.query(
+        const insertQuery = await pool.query(
             `INSERT INTO notifications (email, day) VALUES ($1, $2)`,
             [email, day]
         );
@@ -185,7 +196,7 @@ app.post("/api/notify", async (req, res) => {
 // Function to notify users when a date becomes available
 const notifyUsers = async (day) => {
     try {
-        const notificationsQuery = await client.query(
+        const notificationsQuery = await pool.query(
             `SELECT email FROM notifications WHERE day = $1`,
             [day]
         );
@@ -213,7 +224,7 @@ app.delete("/api/bookings/:id", async (req, res) => {
     const { id } = req.params;
 
     try {
-        const deleteQuery = await client.query(
+        const deleteQuery = await pool.query(
             `DELETE FROM bookings WHERE id = $1 RETURNING day`,
             [id]
         );
@@ -222,7 +233,7 @@ app.delete("/api/bookings/:id", async (req, res) => {
             const { day } = deleteQuery.rows[0];
 
             // Check if the date is now available
-            const countQuery = await client.query(
+            const countQuery = await pool.query(
                 `SELECT COUNT(*) as count FROM bookings WHERE day = $1`,
                 [day]
             );
@@ -243,45 +254,13 @@ app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "admin", "admin-login.jsx"));
 });
 
-// Admin login route (no authentication required)
 
-// app.post("/admin/login", async (req, res) => {
-//     const { firstName, password } = req.body;
-//
-//     try {
-//         // Fetch the admin from the database
-//         const adminQuery = await client.query(
-//             `SELECT * FROM admins WHERE first_name = $1`,
-//             [firstName]
-//         );
-//
-//         if (adminQuery.rows.length === 0) {
-//             return res.status(401).json({ error: "Invalid credentials" });
-//         }
-//
-//         const admin = adminQuery.rows[0];
-//
-//         // Compare the provided password with the hashed password
-//         const isPasswordValid = await bcrypt.compare(password, admin.password_hash);
-//         if (!isPasswordValid) {
-//             return res.status(401).json({ error: "Invalid credentials" });
-//         }
-//
-//         // Store the admin's ID in the session
-//         req.session.adminId = admin.id;
-//
-//         // Return the admin ID in the response
-//         res.json({ adminId: admin.id, message: "Login successful" });
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// });
 
 app.post("/admin/login", async (req, res) => {
     const { firstName, password } = req.body;
     try {
         // Fetch the admin from the database
-        const adminQuery = await client.query(
+        const adminQuery = await pool.query(
             `SELECT * FROM admins WHERE first_name = $1`,
             [firstName]
         );
@@ -304,7 +283,7 @@ app.post("/admin/login", async (req, res) => {
         // Delete previous bookings
         const today = new Date().toISOString().split("T")[0];
         try {
-            await client.query(`DELETE FROM bookings WHERE day < $1`, [today]);
+            await pool.query(`DELETE FROM bookings WHERE day < $1`, [today]);
         } catch (deleteError) {
             console.error("Error deleting previous bookings:", deleteError);
             return res.status(500).json({ error: "Error deleting previous bookings" });
@@ -340,7 +319,6 @@ app.get("/admin/logout", (req, res) => {
 });
 
 // Admin bookings API route (requires authentication)
-// Backend (Express)
 app.get('/api/admin/bookings', async (req, res) => {
     const { day } = req.query;
 
@@ -348,7 +326,7 @@ app.get('/api/admin/bookings', async (req, res) => {
         return res.status(400).json({ error: 'Day parameter is required' });
     }
     try {
-        const bookingsQuery = await client.query(
+        const bookingsQuery = await pool.query(
             `SELECT * FROM bookings WHERE day = $1`,
             [day]
         );
@@ -358,21 +336,78 @@ app.get('/api/admin/bookings', async (req, res) => {
     }
 });
 
-// Schedule a task to delete all bookings every Monday at midnight
-// cron.schedule("0 0 * * 1", async () => {
-//     try {
-//         await client.query(`DELETE FROM bookings`);
-//         console.log("All bookings deleted (scheduled Monday cleanup).");
-//     } catch (err) {
-//         console.error("Error deleting bookings:", err);
-//     }
-// });
+// Admin endpoint to update availability
+app.put("/api/admin/availability/:day", async (req, res) => {
+    // Verify admin authentication here
+    if (!req.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+    }
 
-// Check for availability and notify users every hour
-// cron.schedule("0 * * * *", async () => {
-//     const today = new Date().toISOString().split("T")[0];
-//     await notifyUsers(today);
-// });
+    const { day } = req.params;
+    const { isOpen, maxBookings } = req.body;
+
+    try {
+        await pool.query(
+            `INSERT INTO availability_settings (day, is_open, max_bookings)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (day) 
+             DO UPDATE SET 
+                is_open = $2,
+                max_bookings = $3,
+                updated_at = CURRENT_TIMESTAMP`,
+            [day, isOpen, maxBookings]
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Modified availability check endpoint
+app.get("/api/availability/:day", async (req, res) => {
+    const { day } = req.params;
+
+    try {
+        // First check if the day is open
+        const settingsQuery = await pool.query(
+            `SELECT is_open, max_bookings 
+             FROM availability_settings 
+             WHERE day = $1`,
+            [day]
+        );
+
+        // If no settings found, use defaults
+        const settings = settingsQuery.rows[0] || {
+            is_open: true,
+            max_bookings: 10
+        };
+
+        if (!settings.is_open) {
+            return res.json({ isFullyBooked: true, isClosed: true });
+        }
+
+        // Check current booking count
+        const countQuery = await pool.query(
+            `SELECT COUNT(*) as count 
+             FROM bookings 
+             WHERE day = $1`,
+            [day]
+        );
+
+        const isFullyBooked = countQuery.rows[0].count >= settings.max_bookings;
+
+        res.json({
+            isFullyBooked,
+            isClosed: false,
+            currentBookings: countQuery.rows[0].count,
+            maxBookings: settings.max_bookings
+        });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 
 // Start the server
