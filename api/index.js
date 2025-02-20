@@ -31,18 +31,17 @@ app.use(cors({
 
 app.use(
     session({
-        secret: process.env.SECRET_KEY || "fallback-secret",
+        secret: process.env.SECRET_KEY, // Replace with a strong secret key
         resave: false,
         saveUninitialized: true,
         cookie: {
-            secure: process.env.NODE_ENV === "production",
-            httpOnly: true,
-            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+            secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+            httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
+            sameSite: "None", // Important for cross-origin authentication
             maxAge: 1000 * 60 * 60 * 24 // 1 day
         },
     })
 );
-
 
 
 
