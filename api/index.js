@@ -21,11 +21,12 @@ const port = 3001;
 
 // Middleware
 app.use(cors({
-    origin: "https://book-man-swart.vercel.app",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: "https://book-man-swart.vercel.app", // Allow frontend domain
+    credentials: true, // Allow cookies/session sharing
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 
 
 app.use(
@@ -41,13 +42,6 @@ app.use(
         },
     })
 );
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "https://book-man-swart.vercel.app");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    next();
-});
 
 
 
