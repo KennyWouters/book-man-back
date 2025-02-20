@@ -20,32 +20,20 @@ const app = express();
 const port = 3001;
 
 // Middleware
-app.use(cors({
-    origin: "https://book-man-swart.vercel.app", // Allow frontend domain
-    credentials: true, // Allow cookies/session sharing
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
-app.options("*", cors()); // Handle preflight requests
-
+app.use(cors());
+app.use(bodyParser.json());
 app.use(
     session({
         secret: process.env.SECRET_KEY, // Replace with a strong secret key
         resave: false,
         saveUninitialized: true,
         cookie: {
-            secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+            secure: false, // Set to true if using HTTPS
             httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
-            sameSite: "None", // Important for cross-origin authentication
-            maxAge: 1000 * 60 * 60 * 24 // 1 day
+            maxAge: 1000 * 60 * 60 * 24, // Session expiration time (e.g., 1 day)
         },
     })
 );
-
-
-
-
-
 
 // Middleware to check if an admin is authenticated
 const isAdminAuthenticated = (req, res, next) => {
@@ -269,10 +257,6 @@ app.get("/admin", (req, res) => {
 
 
 app.post("/admin/login", async (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "https://book-man-swart.vercel.app");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-
-
     const { firstName, password } = req.body;
     try {
         // Fetch the admin from the database
@@ -369,7 +353,6 @@ app.put("/api/admin/availability/:day", isAdminAuthenticated, async (req, res) =
                                updated_at = CURRENT_TIMESTAMP`,
             [day, isOpen, maxBookings]
         );
-        res.setHeader("Access-Control-Allow-Credentials", "true");
 
         res.json({ success: true });
     } catch (err) {
