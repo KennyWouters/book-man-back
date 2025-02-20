@@ -23,7 +23,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(
     session({
-        secret: "AgNzzKKc1gZBCeGCK3fdxtLiuhxoWuo7", // Replace with a strong secret key
+        secret: process.env.SECRET_KEY, // Replace with a strong secret key
         resave: false,
         saveUninitialized: true,
         cookie: {
@@ -44,7 +44,7 @@ const isAdminAuthenticated = (req, res, next) => {
 };
 
 const client = new Client({
-    connectionString: "postgres://ueahs5s5irgpst:p7c554315bf7d3cd25f50c6c287bd748c93ff3b457ae2aeac27f06b3e965f0237@c9tiftt16dc3eo.cluster-czz5s0kz4scl.eu-west-1.rds.amazonaws.com:5432/dctvdgvj4sv9pr",
+    connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
     }
@@ -191,7 +191,7 @@ const notifyUsers = async (day) => {
 
         for (const row of notificationsQuery.rows) {
             const { email } = row;
-            const subject = "Une place s'est libérée !";
+            const subject = "Une place s'est libérée à l'atelier bois !";
             const text = `Bonjour, une place s'est libérée pour le ${day}. Réservez vite !`;
 
             await sendEmail(email, subject, text);
