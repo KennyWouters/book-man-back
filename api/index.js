@@ -20,20 +20,36 @@ const app = express();
 const port = 3001;
 
 // Middleware
-app.use(cors());
-app.use(bodyParser.json());
+app.use(cors({
+    origin: "https://book-man-swart.vercel.app",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+
 app.use(
     session({
         secret: process.env.SECRET_KEY, // Replace with a strong secret key
         resave: false,
         saveUninitialized: true,
         cookie: {
-            secure: false, // Set to true if using HTTPS
+            secure: process.env.NODE_ENV === "production", // Use secure cookies in production
             httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
-            maxAge: 1000 * 60 * 60 * 24, // Session expiration time (e.g., 1 day)
+            sameSite: "None", // Important for cross-origin authentication
+            maxAge: 1000 * 60 * 60 * 24 // 1 day
         },
     })
 );
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "https://book-man-swart.vercel.app");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    next();
+});
+
+
 
 // Middleware to check if an admin is authenticated
 const isAdminAuthenticated = (req, res, next) => {
@@ -337,12 +353,8 @@ app.get('/api/admin/bookings', async (req, res) => {
 });
 
 // Admin endpoint to update availability
-app.put("/api/admin/availability/:day", async (req, res) => {
-    // Verify admin authentication here
-    if (!req.user?.isAdmin) {
-        return res.status(403).json({ error: "Admin access required" });
-    }
-
+// Update this endpoint in your server code
+app.put("/api/admin/availability/:day", isAdminAuthenticated, async (req, res) => {
     const { day } = req.params;
     const { isOpen, maxBookings } = req.body;
 
@@ -350,13 +362,14 @@ app.put("/api/admin/availability/:day", async (req, res) => {
         await pool.query(
             `INSERT INTO availability_settings (day, is_open, max_bookings)
              VALUES ($1, $2, $3)
-             ON CONFLICT (day) 
-             DO UPDATE SET 
-                is_open = $2,
-                max_bookings = $3,
-                updated_at = CURRENT_TIMESTAMP`,
+             ON CONFLICT (day)
+                 DO UPDATE SET
+                               is_open = $2,
+                               max_bookings = $3,
+                               updated_at = CURRENT_TIMESTAMP`,
             [day, isOpen, maxBookings]
         );
+        res.setHeader("Access-Control-Allow-Credentials", "true");
 
         res.json({ success: true });
     } catch (err) {
