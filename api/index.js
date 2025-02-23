@@ -118,11 +118,29 @@ const getMondayOfCurrentWeek = () => {
 };
 
 // API to fetch calendar dates (from Monday of the current week to Sunday of the next week)
+
+
+// Initialize startDate to the Monday of the current week
+let startDate = getMondayOfCurrentWeek();
+
+// Schedule a task to reset startDate every two weeks
+cron.schedule('0 0 * * 1', () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const weeksSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24 * 7));
+
+    // Reset startDate if two weeks have passed
+    if (weeksSinceStart >= 2) {
+        startDate = getMondayOfCurrentWeek();
+        console.log("Start date reset to:", startDate);
+    }
+});
+
+// API to fetch calendar dates (from startDate to two weeks later)
 app.get("/api/dates", (req, res) => {
-    const monday = getMondayOfCurrentWeek();
     const dates = Array.from({ length: 14 }, (_, i) => {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + i);
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
         return date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
     });
     res.json(dates);
