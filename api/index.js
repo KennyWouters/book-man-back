@@ -436,7 +436,7 @@ app.get('/api/admin/bookings', async (req, res) => {
 
 cron.schedule("0 0 * * 1", async () => {
     try {
-        const endDateResult = await client.query('SELECT end_date FROM end_date LIMIT 1');
+        const endDateResult = await pool.query('SELECT end_date FROM end_date LIMIT 1');
         if (endDateResult.rows.length === 0) return;
 
         const currentEndDate = new Date(endDateResult.rows[0].end_date);
@@ -457,7 +457,7 @@ cron.schedule("0 0 * * 1", async () => {
 
 const getMondayBeforeEndDate = async () => {
     try {
-        const result = await client.query('SELECT end_date FROM end_date LIMIT 1');
+        const result = await pool.query('SELECT end_date FROM end_date LIMIT 1');
         if (result.rows.length === 0) return getMondayOfCurrentWeek();
 
         const endDate = new Date(result.rows[0].end_date);
