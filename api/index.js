@@ -137,11 +137,21 @@ cron.schedule('0 0 * * 1', () => {
 });
 
 // API to fetch calendar dates (from startDate to two weeks later)
-app.get("/api/dates", (req, res) => {
+// app.get("/api/dates", (req, res) => {
+//     const dates = Array.from({ length: 14 }, (_, i) => {
+//         const date = new Date(startDate);
+//         date.setDate(startDate.getDate() + i);
+//         return date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
+//     });
+//     res.json(dates);
+// });
+
+app.get("/api/dates", async (req, res) => {
+    const monday = await getMondayBeforeEndDate();
     const dates = Array.from({ length: 14 }, (_, i) => {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        return date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + i);
+        return date.toISOString().split("T")[0];
     });
     res.json(dates);
 });
@@ -423,6 +433,50 @@ app.get('/api/admin/bookings', async (req, res) => {
 //         res.status(500).json({ error: err.message });
 //     }
 // });
+
+cron.schedule("0 0 * * 1", async () => {
+    try {
+        const endDateResult = await client.query('SELECT end_date FROM end_date LIMIT 1');
+        if (endDateResult.rows.length === 0) return;
+
+        const currentEndDate = new Date(endDateResult.rows[0].end_date);
+        const today = new Date();
+
+        if (currentEndDate < today) {
+            const newEndDate = new Date(currentEndDate);
+            newEndDate.setDate(currentEndDate.getDate() + 14);
+
+            await client.query('UPDATE end_date SET end_date = $1', [newEndDate.toISOString().split('T')[0]]);
+            console.log(`End date updated to ${newEndDate.toISOString().split('T')[0]}`);
+        }
+    } catch (err) {
+        console.error("Error updating end date:", err);
+    }
+});
+
+
+const getMondayBeforeEndDate = async () => {
+    try {
+        const result = await client.query('SELECT end_date FROM end_date LIMIT 1');
+        if (result.rows.length === 0) return getMondayOfCurrentWeek();
+
+        const endDate = new Date(result.rows[0].end_date);
+        const twoWeeksBeforeEnd = new Date(endDate);
+        twoWeeksBeforeEnd.setDate(endDate.getDate() - 13);
+
+        const dayOfWeek = twoWeeksBeforeEnd.getDay();
+        if (dayOfWeek !== 1) {
+            twoWeeksBeforeEnd.setDate(twoWeeksBeforeEnd.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        }
+
+        twoWeeksBeforeEnd.setHours(0, 0, 0, 0);
+        return twoWeeksBeforeEnd;
+    } catch (err) {
+        console.error("Error getting end date:", err);
+        return getMondayOfCurrentWeek(); // Fallback
+    }
+};
+
 
 
 // Start the server
