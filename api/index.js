@@ -357,72 +357,72 @@ app.get('/api/admin/bookings', async (req, res) => {
 
 // Admin endpoint to update availability
 // Update this endpoint in your server code
-app.put("/api/admin/availability/:day", isAdminAuthenticated, async (req, res) => {
-    const { day } = req.params;
-    const { isOpen, maxBookings } = req.body;
-
-    try {
-        await pool.query(
-            `INSERT INTO availability_settings (day, is_open, max_bookings)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (day)
-                 DO UPDATE SET
-                               is_open = $2,
-                               max_bookings = $3,
-                               updated_at = CURRENT_TIMESTAMP`,
-            [day, isOpen, maxBookings]
-        );
-
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+// app.put("/api/admin/availability/:day", isAdminAuthenticated, async (req, res) => {
+//     const { day } = req.params;
+//     const { isOpen, maxBookings } = req.body;
+//
+//     try {
+//         await pool.query(
+//             `INSERT INTO availability_settings (day, is_open, max_bookings)
+//              VALUES ($1, $2, $3)
+//              ON CONFLICT (day)
+//                  DO UPDATE SET
+//                                is_open = $2,
+//                                max_bookings = $3,
+//                                updated_at = CURRENT_TIMESTAMP`,
+//             [day, isOpen, maxBookings]
+//         );
+//
+//         res.json({ success: true });
+//     } catch (err) {
+//         res.status(500).json({ error: err.message });
+//     }
+// });
 
 // Modified availability check endpoint
-app.get("/api/availability/:day", async (req, res) => {
-    const { day } = req.params;
-
-    try {
-        // First check if the day is open
-        const settingsQuery = await pool.query(
-            `SELECT is_open, max_bookings 
-             FROM availability_settings 
-             WHERE day = $1`,
-            [day]
-        );
-
-        // If no settings found, use defaults
-        const settings = settingsQuery.rows[0] || {
-            is_open: true,
-            max_bookings: 10
-        };
-
-        if (!settings.is_open) {
-            return res.json({ isFullyBooked: true, isClosed: true });
-        }
-
-        // Check current booking count
-        const countQuery = await pool.query(
-            `SELECT COUNT(*) as count 
-             FROM bookings 
-             WHERE day = $1`,
-            [day]
-        );
-
-        const isFullyBooked = countQuery.rows[0].count >= settings.max_bookings;
-
-        res.json({
-            isFullyBooked,
-            isClosed: false,
-            currentBookings: countQuery.rows[0].count,
-            maxBookings: settings.max_bookings
-        });
-
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+// app.get("/api/availability/:day", async (req, res) => {
+//     const { day } = req.params;
+//
+//     try {
+//         // First check if the day is open
+//         const settingsQuery = await pool.query(
+//             `SELECT is_open, max_bookings
+//              FROM availability_settings
+//              WHERE day = $1`,
+//             [day]
+//         );
+//
+//         // If no settings found, use defaults
+//         const settings = settingsQuery.rows[0] || {
+//             is_open: true,
+//             max_bookings: 10
+//         };
+//
+//         if (!settings.is_open) {
+//             return res.json({ isFullyBooked: true, isClosed: true });
+//         }
+//
+//         // Check current booking count
+//         const countQuery = await pool.query(
+//             `SELECT COUNT(*) as count
+//              FROM bookings
+//              WHERE day = $1`,
+//             [day]
+//         );
+//
+//         const isFullyBooked = countQuery.rows[0].count >= settings.max_bookings;
+//
+//         res.json({
+//             isFullyBooked,
+//             isClosed: false,
+//             currentBookings: countQuery.rows[0].count,
+//             maxBookings: settings.max_bookings
+//         });
+//
+//     } catch (err) {
+//         res.status(500).json({ error: err.message });
+//     }
+// });
 
 
 // Start the server
