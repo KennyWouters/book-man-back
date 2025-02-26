@@ -112,7 +112,7 @@ const getMondayOfCurrentWeek = () => {
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
     const monday = new Date(today);
-    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek -2)); // Adjust to Monday
+    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek -1)); // Adjust to Monday
     monday.setHours(0, 0, 0, 0); // Normalize time to midnight
     return monday;
 };
