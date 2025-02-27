@@ -257,7 +257,7 @@ const notifyUsers = async (day) => {
     }
 };
 
-// Example: Call this function when a booking is canceled
+// Call this function when a booking is canceled
 app.delete("/api/bookings/:id", async (req, res) => {
     const { id } = req.params;
 
@@ -374,75 +374,6 @@ app.get('/api/admin/bookings', async (req, res) => {
     }
 });
 
-// Admin endpoint to update availability
-// Update this endpoint in your server code
-// app.put("/api/admin/availability/:day", isAdminAuthenticated, async (req, res) => {
-//     const { day } = req.params;
-//     const { isOpen, maxBookings } = req.body;
-//
-//     try {
-//         await pool.query(
-//             `INSERT INTO availability_settings (day, is_open, max_bookings)
-//              VALUES ($1, $2, $3)
-//              ON CONFLICT (day)
-//                  DO UPDATE SET
-//                                is_open = $2,
-//                                max_bookings = $3,
-//                                updated_at = CURRENT_TIMESTAMP`,
-//             [day, isOpen, maxBookings]
-//         );
-//
-//         res.json({ success: true });
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// });
-
-// Modified availability check endpoint
-// app.get("/api/availability/:day", async (req, res) => {
-//     const { day } = req.params;
-//
-//     try {
-//         // First check if the day is open
-//         const settingsQuery = await pool.query(
-//             `SELECT is_open, max_bookings
-//              FROM availability_settings
-//              WHERE day = $1`,
-//             [day]
-//         );
-//
-//         // If no settings found, use defaults
-//         const settings = settingsQuery.rows[0] || {
-//             is_open: true,
-//             max_bookings: 10
-//         };
-//
-//         if (!settings.is_open) {
-//             return res.json({ isFullyBooked: true, isClosed: true });
-//         }
-//
-//         // Check current booking count
-//         const countQuery = await pool.query(
-//             `SELECT COUNT(*) as count
-//              FROM bookings
-//              WHERE day = $1`,
-//             [day]
-//         );
-//
-//         const isFullyBooked = countQuery.rows[0].count >= settings.max_bookings;
-//
-//         res.json({
-//             isFullyBooked,
-//             isClosed: false,
-//             currentBookings: countQuery.rows[0].count,
-//             maxBookings: settings.max_bookings
-//         });
-//
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// });
-
 cron.schedule("0 0 * * 1", async () => {
     try {
         const endDateResult = await pool.query('SELECT end_date FROM end_date LIMIT 1');
@@ -487,19 +418,32 @@ const getMondayBeforeEndDate = async () => {
 };
 
 // API endpoint for creating or updating availability status
-app.post("/api/admin/availability-status", isAdminAuthenticated, async (req, res) => {
+app.post("/api/admin/availability-status", async (req, res) => {
     const { date, status, comment } = req.body;
-    
+
     // Validate required fields
     if (!date) {
         return res.status(400).json({ error: "Date is required" });
     }
-    
+
     if (typeof status !== 'boolean') {
         return res.status(400).json({ error: "Status must be a boolean value" });
     }
-    
+
     try {
+        // Check if the exact same record already exists
+        const checkQuery = await pool.query(
+            `SELECT * FROM "AvailabilityStatus" WHERE "targetDate" = $1 AND "status" = $2 AND "comment" = $3`,
+            [date, status, comment]
+        );
+
+        if (checkQuery.rows.length > 0) {
+            return res.json({
+                success: false,
+                message: "Availability status already set to the same values"
+            });
+        }
+
         // Insert or update the availability status
         const result = await pool.query(
             `INSERT INTO "AvailabilityStatus" ("targetDate", "status", "comment")
@@ -511,9 +455,9 @@ app.post("/api/admin/availability-status", isAdminAuthenticated, async (req, res
              RETURNING *`,
             [date, status, comment]
         );
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: "Availability status updated successfully",
             data: result.rows[0]
         });
@@ -521,7 +465,7 @@ app.post("/api/admin/availability-status", isAdminAuthenticated, async (req, res
         console.error("Error updating availability status:", err);
         res.status(500).json({ error: err.message });
     }
-});
+});;
 
 // API endpoint for retrieving availability status
 app.get("/api/availability-status/:date", async (req, res) => {
@@ -548,7 +492,7 @@ app.get("/api/availability-status/:date", async (req, res) => {
 });
 
 // API endpoint for retrieving all availability statuses
-app.get("/api/admin/availability-status", isAdminAuthenticated, async (req, res) => {
+app.get("/api/admin/availability-status", async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT * FROM "AvailabilityStatus" ORDER BY "targetDate"`
@@ -561,7 +505,7 @@ app.get("/api/admin/availability-status", isAdminAuthenticated, async (req, res)
 });
 
 // API endpoint for modifying existing availability status
-app.put("/api/admin/availability-status/:date", isAdminAuthenticated, async (req, res) => {
+app.put("/api/admin/availability-status/:date", async (req, res) => {
     const { date } = req.params;
     const { status, comment } = req.body;
     
