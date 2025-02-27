@@ -20,7 +20,11 @@ const app = express();
 const port = 3001;
 
 // Middleware
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
 app.use(bodyParser.json());
 app.use(
     session({
@@ -183,6 +187,13 @@ app.post("/api/book", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// simple endpoint to get hello world as a fucking string NOT HTML
+app.get("/api/hello", (req, res) => {
+    res.set('Content-Type', 'application/json');
+    res.send({ message: "Hello, World!" });
+});
+
 
 // API to check if a date is fully booked
 app.get("/api/availability/:day", async (req, res) => {
