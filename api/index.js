@@ -93,15 +93,13 @@ const createTables = async () => {
         `);
 
         await pool.query(`
-        CREATE TABLE IF NOT EXISTS availability_settings
-            (
-                day          DATE PRIMARY KEY,
-                is_open      BOOLEAN   DEFAULT true,
-                max_bookings INTEGER   DEFAULT 10,
-                created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+        CREATE TABLE IF NOT EXISTS "AvailabilityStatus" (
+            "id" SERIAL PRIMARY KEY,
+            "targetDate" DATE UNIQUE NOT NULL,
+            "status" BOOLEAN NOT NULL DEFAULT false,
+            "comment" TEXT
+);
+        `)
 
         console.log("Tables created or already exist.");
     } catch (err) {
