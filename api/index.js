@@ -486,7 +486,123 @@ const getMondayBeforeEndDate = async () => {
     }
 };
 
+// API endpoint for creating or updating availability status
+app.post("/api/admin/availability-status", isAdminAuthenticated, async (req, res) => {
+    const { date, status, comment } = req.body;
+    
+    // Validate required fields
+    if (!date) {
+        return res.status(400).json({ error: "Date is required" });
+    }
+    
+    if (typeof status !== 'boolean') {
+        return res.status(400).json({ error: "Status must be a boolean value" });
+    }
+    
+    try {
+        // Insert or update the availability status
+        const result = await pool.query(
+            `INSERT INTO "AvailabilityStatus" ("targetDate", "status", "comment")
+             VALUES ($1, $2, $3)
+             ON CONFLICT ("targetDate") 
+             DO UPDATE SET
+                "status" = $2,
+                "comment" = $3
+             RETURNING *`,
+            [date, status, comment]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: "Availability status updated successfully",
+            data: result.rows[0]
+        });
+    } catch (err) {
+        console.error("Error updating availability status:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
+// API endpoint for retrieving availability status
+app.get("/api/availability-status/:date", async (req, res) => {
+    const { date } = req.params;
+    
+    try {
+        const result = await pool.query(
+            `SELECT * FROM "AvailabilityStatus" WHERE "targetDate" = $1`,
+            [date]
+        );
+        
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]);
+        } else {
+            res.json({ 
+                targetDate: date,
+                status: false, // Default status
+                comment: null
+            });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API endpoint for retrieving all availability statuses
+app.get("/api/admin/availability-status", isAdminAuthenticated, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM "AvailabilityStatus" ORDER BY "targetDate"`
+        );
+        
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API endpoint for modifying existing availability status
+app.put("/api/admin/availability-status/:date", isAdminAuthenticated, async (req, res) => {
+    const { date } = req.params;
+    const { status, comment } = req.body;
+    
+    // Validate required fields
+    if (typeof status !== 'boolean') {
+        return res.status(400).json({ error: "Status must be a boolean value" });
+    }
+    
+    try {
+        // Check if the record exists first
+        const checkResult = await pool.query(
+            `SELECT * FROM "AvailabilityStatus" WHERE "targetDate" = $1`,
+            [date]
+        );
+        
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "No availability status found for the specified date" 
+            });
+        }
+        
+        // Update the existing record
+        const result = await pool.query(
+            `UPDATE "AvailabilityStatus" 
+             SET "status" = $2, "comment" = $3
+             WHERE "targetDate" = $1
+             RETURNING *`,
+            [date, status, comment]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: "Availability status updated successfully",
+            data: result.rows[0]
+        });
+    } catch (err) {
+        console.error("Error updating availability status:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Start the server
 const PORT = process.env.PORT || 5432;
