@@ -21,14 +21,14 @@ const app = express();
 const port = 3001;
 
 app.use(cors({
-    origin: ['https://book-man-swart.vercel.app', 'http://localhost:5173'],
+    origin: '*',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin']
+    methods: ['*'],
+    allowedHeaders: ['*']
 }));
 
-// Ensure OPTIONS requests are handled properly
-app.options('*', cors());
+// // Ensure OPTIONS requests are handled properly
+// app.options('*', cors());
 
 // Trust proxy (needed for secure cookies)
 // app.set('trust proxy', 1);
