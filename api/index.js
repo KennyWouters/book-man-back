@@ -21,10 +21,10 @@ const app = express();
 const port = 3001;
 
 app.use(cors({
-    origin: '*',
+    origin: allowedOrigins,
     credentials: true,
-    methods: ['*'],
-    allowedHeaders: ['*']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // // Ensure OPTIONS requests are handled properly
@@ -37,7 +37,7 @@ app.use(cors({
 const store = new session.MemoryStore();
 
 // // Basic middleware
-// app.use(bodyParser.json());
+app.use(bodyParser.json());
 // app.use(cookieParser('your-secret-key'));
 //
 // // Session configuration BEFORE CORS
