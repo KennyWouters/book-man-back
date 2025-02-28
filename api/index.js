@@ -286,10 +286,10 @@ app.post("/api/book", async (req, res) => {
 });
 
 // Add the hello endpoint back
-app.get("/api/hello", (req, res) => {
+/*app.get("/api/hello", (req, res) => {
     res.set('Content-Type', 'application/json');
     res.json({ message: "Hello, World!" });
-});
+});*/
 
 
 // API to check if a date is fully booked
