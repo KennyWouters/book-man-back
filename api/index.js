@@ -58,6 +58,9 @@ const allowedOrigins = [
     'http://localhost:3001'
 ];
 
+// Enable CORS pre-flight for all routes
+app.options('*', cors());
+
 // CORS configuration
 app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -69,17 +72,29 @@ app.use((req, res, next) => {
     
     // Check if origin is allowed
     if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Cookie');
-        res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
-
-        // Handle preflight requests
-        if (req.method === 'OPTIONS') {
-            return res.status(204).end();
-        }
+        // Set CORS headers
+        res.header({
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Credentials': 'true',
+            'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Cookie',
+            'Access-Control-Expose-Headers': 'Set-Cookie',
+            'Vary': 'Origin'  // Important for CDN caching
+        });
     }
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(204).end();
+    }
+
+    // Error handling middleware
+    res.on('error', (error) => {
+        console.error('Response error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
 
     next();
 });
