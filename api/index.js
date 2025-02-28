@@ -50,8 +50,23 @@ app.use(
 );
 
 // CORS configuration AFTER session
+const allowedOrigins = [
+    'https://book-man-swart.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000'
+];
+
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: function(origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
@@ -61,12 +76,16 @@ app.use(cors({
 // Debug middleware
 app.use((req, res, next) => {
     // Add CORS headers to every response
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header('Access-Control-Allow-Origin', origin);
+    }
     
     console.log('\n=== Request Debug ===');
     console.log('URL:', req.url);
     console.log('Method:', req.method);
+    console.log('Origin:', req.headers.origin);
     console.log('Session ID:', req.sessionID);
     console.log('Session:', req.session);
     console.log('Cookies:', req.cookies);
