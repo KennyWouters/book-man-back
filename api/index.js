@@ -20,34 +20,44 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = 3001;
 
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// // Ensure OPTIONS requests are handled properly
+// app.options('*', cors());
+
 // Trust proxy (needed for secure cookies)
-app.set('trust proxy', 1);
+// app.set('trust proxy', 1);
 
 // Create a new MemoryStore instance
 const store = new session.MemoryStore();
 
-// Basic middleware
+// // Basic middleware
 app.use(bodyParser.json());
-app.use(cookieParser('your-secret-key'));
-
-// Session configuration BEFORE CORS
-app.use(
-    session({
-        secret: 'your-secret-key',
-        store: store,
-        name: 'connect.sid',
-        resave: true,
-        saveUninitialized: false,
-        proxy: true,
-        cookie: {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 24 * 60 * 60 * 1000
-        }
-    })
-);
+// app.use(cookieParser('your-secret-key'));
+//
+// // Session configuration BEFORE CORS
+// app.use(
+//     session({
+//         secret: 'your-secret-key',
+//         store: store,
+//         name: 'connect.sid',
+//         resave: true,
+//         saveUninitialized: false,
+//         proxy: true,
+//         cookie: {
+//             httpOnly: true,
+//             secure: false,
+//             sameSite: 'lax',
+//             path: '/',
+//             maxAge: 24 * 60 * 60 * 1000
+//         }
+//     })
+// );
 
 // CORS configuration AFTER session
 const allowedOrigins = [
@@ -60,52 +70,54 @@ const allowedOrigins = [
 ];
 
 // Configure CORS middleware with more detailed options
-const corsOptions = {
-    origin: function (origin, callback) {
-        console.log('Request origin:', origin);
-        
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) {
-            console.log('Allowing request with no origin');
-            return callback(null, true);
-        }
-        
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            console.log('Allowing request from origin:', origin);
-            callback(null, true);
-        } else {
-            console.log('Blocking request from unauthorized origin:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers', 'Cookie'],
-    exposedHeaders: ['Set-Cookie'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-};
+// const corsOptions = {
+//     origin: function (origin, callback) {
+//         console.log('Request origin:', origin);
+//
+//         // Allow requests with no origin (like mobile apps or curl requests)
+//         if (!origin) {
+//             console.log('Allowing request with no origin');
+//             return callback(null, true);
+//         }
+//
+//         if (allowedOrigins.indexOf(origin) !== -1) {
+//             console.log('Allowing request from origin:', origin);
+//             callback(null, true);
+//         } else {
+//             console.log('Blocking request from unauthorized origin:', origin);
+//             callback(new Error('Not allowed by CORS'));
+//         }
+//     },
+//     credentials: true,
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers', 'Cookie'],
+//     exposedHeaders: ['Set-Cookie'],
+//     preflightContinue: false,
+//     optionsSuccessStatus: 204
+// };
 
 // Apply CORS middleware to all routes with options
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
+
 
 // Handle preflight requests for all routes
-app.options('*', cors(corsOptions));
+// app.options('*', cors(corsOptions));
+
 
 // Additional headers middleware for extra security
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        // Set CORS headers
-        res.header('Access-Control-Allow-Origin', origin);
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-        res.header('Access-Control-Expose-Headers', 'Set-Cookie');
-        res.header('Vary', 'Origin');
-    }
-    next();
-});
+// app.use((req, res, next) => {
+//     const origin = req.headers.origin;
+//     if (allowedOrigins.includes(origin)) {
+//         // Set CORS headers
+//         res.header('Access-Control-Allow-Origin', origin);
+//         res.header('Access-Control-Allow-Credentials', 'true');
+//         res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+//         res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+//         res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+//         res.header('Vary', 'Origin');
+//     }
+//     next();
+// });
 
 // Add the hello endpoint back
 app.get("/api/hello", (req, res) => {
@@ -219,8 +231,6 @@ const getMondayOfCurrentWeek = () => {
 };
 
 // API to fetch calendar dates (from Monday of the current week to Sunday of the next week)
-
-
 // Initialize startDate to the Monday of the current week
 let startDate = getMondayOfCurrentWeek();
 
@@ -236,16 +246,6 @@ cron.schedule('0 0 * * 1', () => {
         console.log("Start date reset to:", startDate);
     }
 });
-
-// API to fetch calendar dates (from startDate to two weeks later)
-// app.get("/api/dates", (req, res) => {
-//     const dates = Array.from({ length: 14 }, (_, i) => {
-//         const date = new Date(startDate);
-//         date.setDate(startDate.getDate() + i);
-//         return date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
-//     });
-//     res.json(dates);
-// });
 
 app.get("/api/dates", async (req, res) => {
     const monday = await getMondayBeforeEndDate();
@@ -726,8 +726,3 @@ const PORT = process.env.PORT || 5432;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
-// const password = "admin123"; // Replace with the desired password
-// const saltRounds = 10;
-// const hash = await bcrypt.hash(password, saltRounds);
-// console.log(hash); // Use this hash in the INSERT query
