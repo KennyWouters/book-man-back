@@ -85,21 +85,29 @@ const corsOptions = {
     optionsSuccessStatus: 204
 };
 
-// Apply CORS middleware to all routes
-app.use(cors);
+// Apply CORS middleware to all routes with options
+app.use(cors(corsOptions));
 
 // Handle preflight requests for all routes
 app.options('*', cors(corsOptions));
 
-// Additional headers middleware
+// Additional headers middleware for extra security
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Access-Control-Allow-Credentials', 'true');
+        res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
         res.header('Vary', 'Origin');
     }
     next();
+});
+
+// Add the hello endpoint back
+app.get("/api/hello", (req, res) => {
+    res.set('Content-Type', 'application/json');
+    res.json({ message: "Hello, World!" });
 });
 
 // Debug middleware to log all requests
@@ -108,7 +116,7 @@ app.use((req, res, next) => {
     console.log('Method:', req.method);
     console.log('URL:', req.url);
     console.log('Origin:', req.headers.origin);
-    console.log('Headers:', req.headers);
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
     next();
 });
 
@@ -274,11 +282,11 @@ app.post("/api/book", async (req, res) => {
     }
 });
 
-// simple endpoint to get hello world as a fucking string NOT HTML
-/*app.get("/api/hello", (req, res) => {
+// Add the hello endpoint back
+app.get("/api/hello", (req, res) => {
     res.set('Content-Type', 'application/json');
-    res.send({ message: "Hello, World!" });
-});*/
+    res.json({ message: "Hello, World!" });
+});
 
 
 // API to check if a date is fully booked
