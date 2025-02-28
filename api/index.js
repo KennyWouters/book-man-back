@@ -275,10 +275,10 @@ app.post("/api/book", async (req, res) => {
 });
 
 // simple endpoint to get hello world as a fucking string NOT HTML
-app.get("/api/hello", (req, res) => {
+/*app.get("/api/hello", (req, res) => {
     res.set('Content-Type', 'application/json');
     res.send({ message: "Hello, World!" });
-});
+});*/
 
 
 // API to check if a date is fully booked
