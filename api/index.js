@@ -8,6 +8,7 @@ import { sendEmail } from "../email.js";
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
 import bcrypt from "bcryptjs";
+import cookieParser from 'cookie-parser';
 // import { Pool } from 'pg';
 
 import { fileURLToPath } from 'url';
@@ -19,33 +20,82 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = 3001;
 
-// Middleware
-// app.use(cors());
-app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true
-}));
+// Trust proxy (needed for secure cookies)
+app.set('trust proxy', 1);
+
+// Create a new MemoryStore instance
+const store = new session.MemoryStore();
+
+// Basic middleware
 app.use(bodyParser.json());
+app.use(cookieParser('your-secret-key'));
+
+// Session configuration BEFORE CORS
 app.use(
     session({
-        secret: process.env.SECRET_KEY, // Replace with a strong secret key
-        resave: false,
-        saveUninitialized: true,
+        secret: 'your-secret-key',
+        store: store,
+        name: 'connect.sid',
+        resave: true,
+        saveUninitialized: false,
+        proxy: true,
         cookie: {
-            secure: false, // Set to true if using HTTPS
-            httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
-            maxAge: 1000 * 60 * 60 * 24, // Session expiration time (e.g., 1 day)
-        },
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 24 * 60 * 60 * 1000
+        }
     })
 );
 
+// CORS configuration AFTER session
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposedHeaders: ['Set-Cookie']
+}));
+
+// Debug middleware
+app.use((req, res, next) => {
+    // Add CORS headers to every response
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+    
+    console.log('\n=== Request Debug ===');
+    console.log('URL:', req.url);
+    console.log('Method:', req.method);
+    console.log('Session ID:', req.sessionID);
+    console.log('Session:', req.session);
+    console.log('Cookies:', req.cookies);
+    console.log('Store contents:', store.sessions);
+    next();
+});
+
 // Middleware to check if an admin is authenticated
 const isAdminAuthenticated = (req, res, next) => {
-    if (req.session.adminId) {
-        next();
-    } else {
-        res.status(403).json({ error: "Unauthorized access" });
+    console.log('Checking authentication...');
+    console.log('Session:', req.session);
+    console.log('Session ID:', req.session.id);
+    console.log('AdminId:', req.session.adminId);
+    console.log('FirstName:', req.session.firstName);
+    console.log('Cookies:', req.cookies);
+    console.log('Store contents:', store.sessions);
+
+    if (!req.session) {
+        console.log('No session found');
+        return res.status(403).json({ error: "No session found" });
     }
+
+    if (!req.session.adminId) {
+        console.log('No adminId in session');
+        return res.status(403).json({ error: "Not authenticated" });
+    }
+
+    console.log('Authentication successful');
+    next();
 };
 
 const pool = new Pool({
@@ -292,12 +342,16 @@ app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "admin", "admin-login.jsx"));
 });
 
-
-
+// Updated login endpoint
 app.post("/admin/login", async (req, res) => {
+    console.log('Login attempt:', req.body);
     const { firstName, password } = req.body;
+    
+    if (!firstName || !password) {
+        return res.status(400).json({ error: "Missing credentials" });
+    }
+
     try {
-        // Fetch the admin from the database
         const adminQuery = await pool.query(
             `SELECT * FROM admins WHERE first_name = $1`,
             [firstName]
@@ -308,56 +362,94 @@ app.post("/admin/login", async (req, res) => {
         }
 
         const admin = adminQuery.rows[0];
-
-        // Compare the provided password with the hashed password
         const isPasswordValid = await bcrypt.compare(password, admin.password_hash);
         if (!isPasswordValid) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        // Store the admin's ID in the session
+        // Set session data
         req.session.adminId = admin.id;
+        req.session.firstName = admin.first_name;
+        req.session.isAdmin = true;
+        req.session.lastAccess = Date.now();
 
-        // Delete previous bookings
-        const today = new Date().toISOString().split("T")[0];
-        try {
-            await pool.query(`DELETE FROM bookings WHERE day < $1`, [today]);
-        } catch (deleteError) {
-            console.error("Error deleting previous bookings:", deleteError);
-            return res.status(500).json({ error: "Error deleting previous bookings" });
-        }
+        // Save session explicitly
+        await new Promise((resolve, reject) => {
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    reject(err);
+                    return;
+                }
+                resolve();
+            });
+        });
 
-        // Return the admin ID in the response
-        res.json({ adminId: admin.id, message: "Login successful" });
+        console.log('Login successful, session saved:', {
+            sessionId: req.sessionID,
+            adminId: req.session.adminId,
+            firstName: req.session.firstName,
+            cookie: req.session.cookie
+        });
+
+        res.json({ 
+            adminId: admin.id,
+            firstName: admin.first_name,
+            message: "Login successful"
+        });
+
     } catch (err) {
+        console.error('Login error:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Apply the isAdminAuthenticated middleware to all /admin routes
-app.use("/admin", isAdminAuthenticated);
+// Updated protection middleware
+const protectAdminRoutes = async (req, res, next) => {
+    console.log('=== Protection Middleware ===');
+    console.log('Session ID:', req.sessionID);
+    console.log('Session Data:', req.session);
+    console.log('Store contents:', Object.keys(store.sessions).length, 'sessions');
 
-// Admin dashboard route (requires authentication)
-app.get("/admin/dashboard", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "admin-dashboard.html"));
-});
+    if (!req.session) {
+        console.log('No session found');
+        return res.status(403).json({ error: "No session found" });
+    }
 
-// Admin logout route (requires authentication)
-app.get("/admin/logout", (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            console.error("Error destroying session:", err);
-            return res.status(500).json({ error: "Could not log out" });
+    if (!req.session.adminId || !req.session.firstName) {
+        console.log('Missing admin session data');
+        return res.status(403).json({ error: "Please log in as admin" });
+    }
+
+    try {
+        // Update last access time
+        req.session.lastAccess = Date.now();
+        
+        // Verify admin exists in database
+        const adminQuery = await pool.query(
+            `SELECT id, first_name FROM admins WHERE id = $1`,
+            [req.session.adminId]
+        );
+
+        if (adminQuery.rows.length === 0) {
+            console.log('Admin not found in database');
+            req.session.destroy();
+            return res.status(403).json({ error: "Invalid admin session" });
         }
 
-        // Clear the session cookie
-        res.clearCookie("connect.sid"); // "connect.sid" is the default session cookie name
-        res.redirect("/admin"); // Redirect to the login page
-    });
+        next();
+    } catch (err) {
+        console.error('Admin verification error:', err);
+        return res.status(500).json({ error: "Authentication error" });
+    }
+};
+
+// Update protected routes to use new middleware
+app.get("/api/admin/name", protectAdminRoutes, async (req, res) => {
+    res.json({ name: req.session.firstName });
 });
 
-// Admin bookings API route (requires authentication)
-app.get('/api/admin/bookings', async (req, res) => {
+app.get('/api/admin/bookings', protectAdminRoutes, async (req, res) => {
     const { day } = req.query;
 
     if (!day) {
@@ -372,6 +464,22 @@ app.get('/api/admin/bookings', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+app.get("/admin/dashboard", protectAdminRoutes, (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "admin-dashboard.html"));
+});
+
+// Update logout endpoint
+app.get("/admin/logout", (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error("Error destroying session:", err);
+            return res.status(500).json({ error: "Could not log out" });
+        }
+        res.clearCookie("connect.sid");
+        res.json({ message: "Logged out successfully" });
+    });
 });
 
 cron.schedule("0 0 * * 1", async () => {
@@ -547,6 +655,29 @@ app.put("/api/admin/availability-status/:date", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// Session cleanup interval (every 15 minutes)
+setInterval(() => {
+    const now = Date.now();
+    store.all((err, sessions) => {
+        if (err) {
+            console.error('Session cleanup error:', err);
+            return;
+        }
+        
+        Object.keys(sessions).forEach(sid => {
+            const session = sessions[sid];
+            const lastAccess = session.lastAccess || 0;
+            
+            // Remove sessions older than 24 hours or without admin data
+            if (now - lastAccess > 24 * 60 * 60 * 1000 || !session.adminId) {
+                store.destroy(sid, (err) => {
+                    if (err) console.error('Error destroying session:', err);
+                });
+            }
+        });
+    });
+}, 15 * 60 * 1000);
 
 // Start the server
 const PORT = process.env.PORT || 5432;
