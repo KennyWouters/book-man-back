@@ -58,45 +58,55 @@ const allowedOrigins = [
     'http://localhost:3001'
 ];
 
-// Enable CORS pre-flight for all routes
-app.options('*', cors());
+// Configure CORS middleware
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
+};
 
-// CORS configuration
+// Apply CORS middleware to all routes
+app.use(cors(corsOptions));
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
+
+// Additional headers middleware
 app.use((req, res, next) => {
     const origin = req.headers.origin;
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-        return next();
-    }
-    
-    // Check if origin is allowed
     if (allowedOrigins.includes(origin)) {
-        // Set CORS headers
-        res.header({
-            'Access-Control-Allow-Origin': origin,
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Cookie',
-            'Access-Control-Expose-Headers': 'Set-Cookie',
-            'Vary': 'Origin'  // Important for CDN caching
+        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header('Vary', 'Origin');
+    }
+    next();
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Global error handler:', err);
+    if (err.message === 'Not allowed by CORS') {
+        res.status(403).json({
+            error: 'CORS Error',
+            message: 'Origin not allowed',
+            origin: req.headers.origin
+        });
+    } else {
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: err.message
         });
     }
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(204).end();
-    }
-
-    // Error handling middleware
-    res.on('error', (error) => {
-        console.error('Response error:', error);
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'Internal Server Error' });
-        }
-    });
-
-    next();
 });
 
 // Debug middleware
