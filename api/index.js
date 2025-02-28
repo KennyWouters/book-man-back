@@ -60,52 +60,65 @@ const allowedOrigins = [
 ];
 
 // Configure CORS middleware with more detailed options
-const corsOptions = {
-    origin: function (origin, callback) {
-        console.log('Request origin:', origin);
-        
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) {
-            console.log('Allowing request with no origin');
-            return callback(null, true);
-        }
-        
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            console.log('Allowing request from origin:', origin);
-            callback(null, true);
-        } else {
-            console.log('Blocking request from unauthorized origin:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers', 'Cookie'],
-    exposedHeaders: ['Set-Cookie'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-};
+// const corsOptions = {
+//     origin: function (origin, callback) {
+//         console.log('Request origin:', origin);
+//
+//         // Allow requests with no origin (like mobile apps or curl requests)
+//         if (!origin) {
+//             console.log('Allowing request with no origin');
+//             return callback(null, true);
+//         }
+//
+//         if (allowedOrigins.indexOf(origin) !== -1) {
+//             console.log('Allowing request from origin:', origin);
+//             callback(null, true);
+//         } else {
+//             console.log('Blocking request from unauthorized origin:', origin);
+//             callback(new Error('Not allowed by CORS'));
+//         }
+//     },
+//     credentials: true,
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers', 'Cookie'],
+//     exposedHeaders: ['Set-Cookie'],
+//     preflightContinue: false,
+//     optionsSuccessStatus: 204
+// };
 
 // Apply CORS middleware to all routes with options
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
+
 
 // Handle preflight requests for all routes
-app.options('*', cors(corsOptions));
+// app.options('*', cors(corsOptions));
+
+
+
+// Simple CORS at the top
+app.use(cors({
+    origin: 'https://book-man-swart.vercel.app',
+    credentials: true
+}));
+
+// Handle preflight
+app.options('*', cors());
+
 
 // Additional headers middleware for extra security
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        // Set CORS headers
-        res.header('Access-Control-Allow-Origin', origin);
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-        res.header('Access-Control-Expose-Headers', 'Set-Cookie');
-        res.header('Vary', 'Origin');
-    }
-    next();
-});
+// app.use((req, res, next) => {
+//     const origin = req.headers.origin;
+//     if (allowedOrigins.includes(origin)) {
+//         // Set CORS headers
+//         res.header('Access-Control-Allow-Origin', origin);
+//         res.header('Access-Control-Allow-Credentials', 'true');
+//         res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+//         res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+//         res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+//         res.header('Vary', 'Origin');
+//     }
+//     next();
+// });
 
 // Add the hello endpoint back
 app.get("/api/hello", (req, res) => {
