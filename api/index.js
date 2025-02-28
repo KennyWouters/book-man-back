@@ -4,7 +4,7 @@ const { Pool } = pkg; // Replace sqlite3 with pg
 import bodyParser from "body-parser";
 import cors from "cors";
 import cron from "node-cron";
-import { sendEmail } from "../email.js";
+import { sendEmail } from "./email.js";
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
 import bcrypt from "bcryptjs";
@@ -108,10 +108,10 @@ app.use((req, res, next) => {
 });
 
 // Add the hello endpoint back
-/*app.get("/api/hello", (req, res) => {
+app.get("/api/hello", (req, res) => {
     res.set('Content-Type', 'application/json');
     res.json({ message: "Hello, World!" });
-});*/
+});
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
@@ -284,13 +284,6 @@ app.post("/api/book", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-// Add the hello endpoint back
-/*app.get("/api/hello", (req, res) => {
-    res.set('Content-Type', 'application/json');
-    res.json({ message: "Hello, World!" });
-});*/
-
 
 // API to check if a date is fully booked
 app.get("/api/availability/:day", async (req, res) => {
