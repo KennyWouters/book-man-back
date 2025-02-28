@@ -109,10 +109,10 @@ app.use((req, res, next) => {
 });
 
 // Add the hello endpoint back
-app.get("/api/hello", (req, res) => {
+/*app.get("/api/hello", (req, res) => {
     res.set('Content-Type', 'application/json');
     res.json({ message: "Hello, World!" });
-});
+});*/
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
