@@ -20,34 +20,43 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = 3001;
 
+// Simple CORS at the top
+app.use(cors({
+    origin: 'https://book-man-swart.vercel.app',
+    credentials: true
+}));
+
+// Handle preflight
+app.options('*', cors());
+
 // Trust proxy (needed for secure cookies)
-app.set('trust proxy', 1);
+// app.set('trust proxy', 1);
 
 // Create a new MemoryStore instance
 const store = new session.MemoryStore();
 
-// Basic middleware
-app.use(bodyParser.json());
-app.use(cookieParser('your-secret-key'));
-
-// Session configuration BEFORE CORS
-app.use(
-    session({
-        secret: 'your-secret-key',
-        store: store,
-        name: 'connect.sid',
-        resave: true,
-        saveUninitialized: false,
-        proxy: true,
-        cookie: {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 24 * 60 * 60 * 1000
-        }
-    })
-);
+// // Basic middleware
+// app.use(bodyParser.json());
+// app.use(cookieParser('your-secret-key'));
+//
+// // Session configuration BEFORE CORS
+// app.use(
+//     session({
+//         secret: 'your-secret-key',
+//         store: store,
+//         name: 'connect.sid',
+//         resave: true,
+//         saveUninitialized: false,
+//         proxy: true,
+//         cookie: {
+//             httpOnly: true,
+//             secure: false,
+//             sameSite: 'lax',
+//             path: '/',
+//             maxAge: 24 * 60 * 60 * 1000
+//         }
+//     })
+// );
 
 // CORS configuration AFTER session
 const allowedOrigins = [
@@ -92,17 +101,6 @@ const allowedOrigins = [
 
 // Handle preflight requests for all routes
 // app.options('*', cors(corsOptions));
-
-
-
-// Simple CORS at the top
-app.use(cors({
-    origin: 'https://book-man-swart.vercel.app',
-    credentials: true
-}));
-
-// Handle preflight
-app.options('*', cors());
 
 
 // Additional headers middleware for extra security
