@@ -53,35 +53,33 @@ app.use(
 const allowedOrigins = [
     'https://book-man-swart.vercel.app',
     'http://localhost:5173',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://localhost:3001'
 ];
 
-app.use(cors({
-    origin: function(origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) === -1) {
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
-        }
-        return callback(null, true);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-    exposedHeaders: ['Set-Cookie']
-}));
+// CORS configuration
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    // Check if origin is allowed
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+        res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
+    }
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    next();
+});
 
 // Debug middleware
 app.use((req, res, next) => {
-    // Add CORS headers to every response
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Allow-Origin', origin);
-    }
-    
     console.log('\n=== Request Debug ===');
     console.log('URL:', req.url);
     console.log('Method:', req.method);
@@ -89,7 +87,6 @@ app.use((req, res, next) => {
     console.log('Session ID:', req.sessionID);
     console.log('Session:', req.session);
     console.log('Cookies:', req.cookies);
-    console.log('Store contents:', store.sessions);
     next();
 });
 
