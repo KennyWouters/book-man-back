@@ -20,13 +20,14 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = 3001;
 
-// Simple CORS at the top
 app.use(cors({
-    origin: 'https://book-man-swart.vercel.app',
-    credentials: true
+    origin: ['https://book-man-swart.vercel.app', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin']
 }));
 
-// Handle preflight
+// Ensure OPTIONS requests are handled properly
 app.options('*', cors());
 
 // Trust proxy (needed for secure cookies)
@@ -230,8 +231,6 @@ const getMondayOfCurrentWeek = () => {
 };
 
 // API to fetch calendar dates (from Monday of the current week to Sunday of the next week)
-
-
 // Initialize startDate to the Monday of the current week
 let startDate = getMondayOfCurrentWeek();
 
@@ -247,16 +246,6 @@ cron.schedule('0 0 * * 1', () => {
         console.log("Start date reset to:", startDate);
     }
 });
-
-// API to fetch calendar dates (from startDate to two weeks later)
-// app.get("/api/dates", (req, res) => {
-//     const dates = Array.from({ length: 14 }, (_, i) => {
-//         const date = new Date(startDate);
-//         date.setDate(startDate.getDate() + i);
-//         return date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
-//     });
-//     res.json(dates);
-// });
 
 app.get("/api/dates", async (req, res) => {
     const monday = await getMondayBeforeEndDate();
@@ -295,13 +284,6 @@ app.post("/api/book", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-// Add the hello endpoint back
-/*app.get("/api/hello", (req, res) => {
-    res.set('Content-Type', 'application/json');
-    res.json({ message: "Hello, World!" });
-});*/
-
 
 // API to check if a date is fully booked
 app.get("/api/availability/:day", async (req, res) => {
@@ -744,8 +726,3 @@ const PORT = process.env.PORT || 5432;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
-// const password = "admin123"; // Replace with the desired password
-// const saltRounds = 10;
-// const hash = await bcrypt.hash(password, saltRounds);
-// console.log(hash); // Use this hash in the INSERT query
