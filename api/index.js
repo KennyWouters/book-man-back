@@ -52,6 +52,7 @@ app.use(
 // CORS configuration AFTER session
 const allowedOrigins = [
     'https://book-man-swart.vercel.app',
+    'https://book-man-b65d9d654296.herokuapp.com',
     'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:3001'
@@ -61,18 +62,23 @@ const allowedOrigins = [
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+        return next();
+    }
+    
     // Check if origin is allowed
     if (allowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Cookie');
         res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
-    }
 
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+        // Handle preflight requests
+        if (req.method === 'OPTIONS') {
+            return res.status(204).end();
+        }
     }
 
     next();
