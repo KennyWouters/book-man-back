@@ -4,7 +4,7 @@ const { Pool } = pkg; // Replace sqlite3 with pg
 import bodyParser from "body-parser";
 import cors from "cors";
 import cron from "node-cron";
-import { sendEmail } from "./email.js";
+import { sendEmail } from "../email.js";
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
 import bcrypt from "bcryptjs";
