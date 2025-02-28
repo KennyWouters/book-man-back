@@ -55,7 +55,6 @@ const allowedOrigins = [
     'https://book-man-b65d9d654296.herokuapp.com',
     'http://localhost:5173',
     'http://localhost:5174',
-
     'http://localhost:3000',
     'http://localhost:3001'
 ];
@@ -734,9 +733,6 @@ const PORT = process.env.PORT || 5432;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
-
-
 
 // const password = "admin123"; // Replace with the desired password
 // const saltRounds = 10;
