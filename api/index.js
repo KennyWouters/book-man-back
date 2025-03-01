@@ -4,7 +4,7 @@ const { Pool } = pkg; // Replace sqlite3 with pg
 import bodyParser from "body-parser";
 import cors from "cors";
 import cron from "node-cron";
-import { sendEmail } from "../email.js";
+import { sendEmail } from "../email.js"; // Fix the path
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
 import bcrypt from "bcryptjs";
@@ -18,48 +18,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
-// // Ensure OPTIONS requests are handled properly
-// app.options('*', cors());
-
-// Trust proxy (needed for secure cookies)
-// app.set('trust proxy', 1);
-
-// Create a new MemoryStore instance
-const store = new session.MemoryStore();
-
-// // Basic middleware
-app.use(bodyParser.json());
-// app.use(cookieParser('your-secret-key'));
-//
-// // Session configuration BEFORE CORS
-// app.use(
-//     session({
-//         secret: 'your-secret-key',
-//         store: store,
-//         name: 'connect.sid',
-//         resave: true,
-//         saveUninitialized: false,
-//         proxy: true,
-//         cookie: {
-//             httpOnly: true,
-//             secure: false,
-//             sameSite: 'lax',
-//             path: '/',
-//             maxAge: 24 * 60 * 60 * 1000
-//         }
-//     })
-// );
-
-// CORS configuration AFTER session
+// Define allowed origins first
 const allowedOrigins = [
     'https://book-man-swart.vercel.app',
     'https://book-man-b65d9d654296.herokuapp.com',
@@ -69,55 +30,43 @@ const allowedOrigins = [
     'http://localhost:3001'
 ];
 
-// Configure CORS middleware with more detailed options
-// const corsOptions = {
-//     origin: function (origin, callback) {
-//         console.log('Request origin:', origin);
-//
-//         // Allow requests with no origin (like mobile apps or curl requests)
-//         if (!origin) {
-//             console.log('Allowing request with no origin');
-//             return callback(null, true);
-//         }
-//
-//         if (allowedOrigins.indexOf(origin) !== -1) {
-//             console.log('Allowing request from origin:', origin);
-//             callback(null, true);
-//         } else {
-//             console.log('Blocking request from unauthorized origin:', origin);
-//             callback(new Error('Not allowed by CORS'));
-//         }
-//     },
-//     credentials: true,
-//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers', 'Cookie'],
-//     exposedHeaders: ['Set-Cookie'],
-//     preflightContinue: false,
-//     optionsSuccessStatus: 204
-// };
+// Configure CORS middleware
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+};
 
-// Apply CORS middleware to all routes with options
-// app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 
+// Basic middleware
+app.use(bodyParser.json());
+app.use(cookieParser());
 
-// Handle preflight requests for all routes
-// app.options('*', cors(corsOptions));
+// Create a new MemoryStore instance
+const store = new session.MemoryStore();
 
-
-// Additional headers middleware for extra security
-// app.use((req, res, next) => {
-//     const origin = req.headers.origin;
-//     if (allowedOrigins.includes(origin)) {
-//         // Set CORS headers
-//         res.header('Access-Control-Allow-Origin', origin);
-//         res.header('Access-Control-Allow-Credentials', 'true');
-//         res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-//         res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-//         res.header('Access-Control-Expose-Headers', 'Set-Cookie');
-//         res.header('Vary', 'Origin');
-//     }
-//     next();
-// });
+// Session configuration
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || 'your-secret-key',
+        store: store,
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60 * 1000
+        }
+    })
+);
 
 // Add the hello endpoint back
 app.get("/api/hello", (req, res) => {
@@ -722,7 +671,6 @@ setInterval(() => {
 }, 15 * 60 * 1000);
 
 // Start the server
-const PORT = process.env.PORT || 5432;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
