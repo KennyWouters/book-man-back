@@ -3,7 +3,8 @@ import pkg from 'pg';
 const { Pool } = pkg; // Replace sqlite3 with pg
 import bodyParser from "body-parser";
 import cors from "cors";
-import cron from "node-cron";
+import nodeCron from 'node-cron';
+const cron = nodeCron;
 import { sendEmail } from "../email.js"; // Fix the path
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
