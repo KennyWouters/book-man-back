@@ -516,7 +516,7 @@ setInterval(async () => {
     } catch (err) {
         console.error("Error updating end date:", err);
     }
-}, 24 * 60 * 60 * 1000); // Check once per day
+}, 8 * 60 * 60 * 1000); // Check once per day
 
 const getMondayBeforeEndDate = async () => {
     try {
