@@ -3,8 +3,6 @@ import pkg from 'pg';
 const { Pool } = pkg; // Replace sqlite3 with pg
 import bodyParser from "body-parser";
 import cors from "cors";
-import nodeCron from 'node-cron';
-const cron = nodeCron;
 import { sendEmail } from "../email.js"; // Fix the path
 import * as path from "node:path"; // Import the email utility
 import session from "express-session";
@@ -180,22 +178,19 @@ const getMondayOfCurrentWeek = () => {
     return monday;
 };
 
-// API to fetch calendar dates (from Monday of the current week to Sunday of the next week)
 // Initialize startDate to the Monday of the current week
 let startDate = getMondayOfCurrentWeek();
 
-// Schedule a task to reset startDate every two weeks
-cron.schedule('0 0 * * 1', () => {
+// Schedule task to reset startDate every two weeks (14 days)
+setInterval(() => {
     const today = new Date();
-    const dayOfWeek = today.getDay();
     const weeksSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24 * 7));
 
-    // Reset startDate if two weeks have passed
     if (weeksSinceStart >= 2) {
         startDate = getMondayOfCurrentWeek();
         console.log("Start date reset to:", startDate);
     }
-});
+}, 24 * 60 * 60 * 1000); // Check once per day
 
 app.get("/api/dates", async (req, res) => {
     const monday = await getMondayBeforeEndDate();
@@ -474,7 +469,8 @@ app.get("/admin/logout", (req, res) => {
     });
 });
 
-cron.schedule("0 0 * * 1", async () => {
+// Update end date weekly
+setInterval(async () => {
     try {
         const endDateResult = await pool.query('SELECT end_date FROM end_date LIMIT 1');
         if (endDateResult.rows.length === 0) return;
@@ -486,14 +482,13 @@ cron.schedule("0 0 * * 1", async () => {
             const newEndDate = new Date(currentEndDate);
             newEndDate.setDate(currentEndDate.getDate() + 14);
 
-            await client.query('UPDATE end_date SET end_date = $1', [newEndDate.toISOString().split('T')[0]]);
+            await pool.query('UPDATE end_date SET end_date = $1', [newEndDate.toISOString().split('T')[0]]);
             console.log(`End date updated to ${newEndDate.toISOString().split('T')[0]}`);
         }
     } catch (err) {
         console.error("Error updating end date:", err);
     }
-});
-
+}, 24 * 60 * 60 * 1000); // Check once per day
 
 const getMondayBeforeEndDate = async () => {
     try {
