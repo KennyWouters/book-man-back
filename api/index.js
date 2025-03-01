@@ -8,10 +8,21 @@ import * as path from "node:path"; // Import the email utility
 import session from "express-session";
 import bcrypt from "bcryptjs";
 import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
 // import { Pool } from 'pg';
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+
+// Load environment variables
+dotenv.config();
+
+// Log environment for debugging
+console.log('Environment:', {
+    NODE_ENV: process.env.NODE_ENV,
+    DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Not set',
+    PORT: process.env.PORT || 3001
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -107,6 +118,7 @@ const isAdminAuthenticated = (req, res, next) => {
     next();
 };
 
+// Configure database connection
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -114,10 +126,25 @@ const pool = new Pool({
     }
 });
 
-pool.connect()
-    .then(() => console.log("Connected to Heroku PostgreSQL"))
-    .catch((err) => console.error("Error connecting to Heroku PostgreSQL:", err));
+// Test database connection before starting server
+const startServer = async () => {
+    try {
+        // Test database connection
+        await pool.connect();
+        console.log("Connected to PostgreSQL database");
 
+        // Create tables after successful connection
+        await createTables();
+
+        // Start the server only after database is connected
+        app.listen(port, () => {
+            console.log(`Server running on port ${port}`);
+        });
+    } catch (err) {
+        console.error("Database connection error:", err);
+        process.exit(1); // Exit if we can't connect to the database
+    }
+};
 
 const createTables = async () => {
     try {
@@ -166,7 +193,8 @@ const createTables = async () => {
     }
 };
 
-createTables();
+// Start the server
+startServer();
 
 // Helper function to get the Monday of the current week
 const getMondayOfCurrentWeek = () => {
@@ -432,11 +460,11 @@ const protectAdminRoutes = async (req, res, next) => {
 };
 
 // Update protected routes to use new middleware
-app.get("/api/admin/name", protectAdminRoutes, async (req, res) => {
+app.get("/api/admin/name",  async (req, res) => {
     res.json({ name: req.session.firstName });
 });
 
-app.get('/api/admin/bookings', protectAdminRoutes, async (req, res) => {
+app.get('/api/admin/bookings', async (req, res) => {
     const { day } = req.query;
 
     if (!day) {
@@ -453,7 +481,7 @@ app.get('/api/admin/bookings', protectAdminRoutes, async (req, res) => {
     }
 });
 
-app.get("/admin/dashboard", protectAdminRoutes, (req, res) => {
+app.get("/admin/dashboard",  (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin-dashboard.html"));
 });
 
@@ -665,8 +693,3 @@ setInterval(() => {
         });
     });
 }, 15 * 60 * 1000);
-
-// Start the server
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
