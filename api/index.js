@@ -235,6 +235,22 @@ app.post("/api/book", async (req, res) => {
     const { phoneNumber, firstName, lastName, day, startHour, endHour } = req.body;
 
     try {
+        // First check if this person already has a booking for this date
+        const existingBookingQuery = await pool.query(
+            `SELECT id FROM bookings 
+             WHERE phone_number = $1 
+             AND first_name = $2 
+             AND last_name = $3 
+             AND day = $4`,
+            [phoneNumber, firstName, lastName, day]
+        );
+
+        if (existingBookingQuery.rows.length > 0) {
+            return res.status(400).json({ 
+                error: "You already have a booking for this date"
+            });
+        }
+
         // Check the number of existing bookings for the given day
         const countQuery = await pool.query(
             `SELECT COUNT(*) as count FROM bookings WHERE day = $1`,
@@ -242,7 +258,9 @@ app.post("/api/book", async (req, res) => {
         );
 
         if (countQuery.rows[0].count >= 10) {
-            return res.status(400).json({ error: "Maximum bookings reached for this date" });
+            return res.status(400).json({ 
+                error: "Maximum bookings reached for this date" 
+            });
         }
 
         // Insert the new booking
