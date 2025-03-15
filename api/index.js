@@ -497,7 +497,7 @@ app.get("/admin/logout", (req, res) => {
     });
 });
 
-// Update end date weekly
+// Automatic end date update
 setInterval(async () => {
     try {
         const endDateResult = await pool.query('SELECT end_date FROM end_date LIMIT 1');
@@ -505,18 +505,19 @@ setInterval(async () => {
 
         const currentEndDate = new Date(endDateResult.rows[0].end_date);
         const today = new Date();
-
-        if (currentEndDate < today) {
+        
+        // Check if it's the end date and it's 13:00 or later
+        if (currentEndDate.toDateString() === today.toDateString() && today.getHours() >= 13) {
             const newEndDate = new Date(currentEndDate);
             newEndDate.setDate(currentEndDate.getDate() + 14);
 
             await pool.query('UPDATE end_date SET end_date = $1', [newEndDate.toISOString().split('T')[0]]);
-            console.log(`End date updated to ${newEndDate.toISOString().split('T')[0]}`);
+            console.log(`End date automatically updated to ${newEndDate.toISOString().split('T')[0]}`);
         }
     } catch (err) {
         console.error("Error updating end date:", err);
     }
-}, 24 * 60 * 60 * 1000); // Check once per day
+}, 60 * 60 * 1000); // Check every hour instead of every day
 
 const getMondayBeforeEndDate = async () => {
     try {
