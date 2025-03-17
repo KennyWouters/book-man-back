@@ -235,19 +235,17 @@ app.post("/api/book", async (req, res) => {
     const { phoneNumber, firstName, lastName, day, startHour, endHour } = req.body;
 
     try {
-        // First check if this person already has a booking for this date
+        // Check if this phone number already has a booking for this date
         const existingBookingQuery = await pool.query(
             `SELECT id FROM bookings 
              WHERE phone_number = $1 
-             AND first_name = $2 
-             AND last_name = $3 
-             AND day = $4`,
-            [phoneNumber, firstName, lastName, day]
+             AND day = $2`,
+            [phoneNumber, day]
         );
 
         if (existingBookingQuery.rows.length > 0) {
             return res.status(400).json({ 
-                error: "You already have a booking for this date"
+                error: "This phone number already has a booking for this date"
             });
         }
 
