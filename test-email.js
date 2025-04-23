@@ -2,7 +2,7 @@
 import { sendEmail } from './email.js';
 
 const testSendEmail = async () => {
-    const to = 'knnwouters@gmail.com';
+    const to = '';
     const subject = 'Test Email';
     const text = 'This is a test email.';
 
