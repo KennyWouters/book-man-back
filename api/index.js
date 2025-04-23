@@ -710,3 +710,31 @@ setInterval(() => {
         });
     });
 }, 15 * 60 * 1000);
+
+// Function to clean up past bookings
+const cleanupPastBookings = async () => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of day
+
+        // Delete bookings from past dates
+        const result = await pool.query(
+            `DELETE FROM bookings WHERE day < $1 RETURNING *`,
+            [today.toISOString().split('T')[0]]
+        );
+
+        if (result.rows.length > 0) {
+            console.log(`Cleaned up ${result.rows.length} past bookings`);
+        }
+    } catch (err) {
+        console.error("Error cleaning up past bookings:", err);
+    }
+};
+
+// Run cleanup every day at midnight
+setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 0 && now.getMinutes() === 0) {
+        cleanupPastBookings();
+    }
+}, 60 * 1000); // Check every minute
