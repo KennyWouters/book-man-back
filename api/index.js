@@ -717,6 +717,9 @@ const cleanupPastBookings = async () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Set to start of day
 
+        console.log('Running cleanup for past bookings...');
+        console.log('Current date:', today.toISOString());
+
         // Delete bookings from past dates
         const result = await pool.query(
             `DELETE FROM bookings WHERE day < $1 RETURNING *`,
@@ -725,16 +728,24 @@ const cleanupPastBookings = async () => {
 
         if (result.rows.length > 0) {
             console.log(`Cleaned up ${result.rows.length} past bookings`);
+        } else {
+            console.log('No past bookings to clean up');
         }
     } catch (err) {
         console.error("Error cleaning up past bookings:", err);
     }
 };
 
+// Run cleanup immediately when server starts
+cleanupPastBookings();
+
 // Run cleanup every day at midnight
 setInterval(() => {
     const now = new Date();
+    console.log('Checking cleanup time:', now.toISOString());
+    
     if (now.getHours() === 0 && now.getMinutes() === 0) {
+        console.log('Midnight detected, running cleanup...');
         cleanupPastBookings();
     }
 }, 60 * 1000); // Check every minute
