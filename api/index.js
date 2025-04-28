@@ -800,7 +800,7 @@ const updateEndDate = async () => {
     }
 };
 
-// Run end date update check every hour
+// Run end date update check every minute
 setInterval(() => {
     updateEndDate();
-}, 60 * 1000); // Check every hour
+}, 60 * 1000); // Check every minute
