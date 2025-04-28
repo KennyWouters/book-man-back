@@ -755,7 +755,7 @@ const cleanupPastBookings = async () => {
 // Run cleanup immediately when server starts
 cleanupPastBookings();
 
-// Run cleanup every day at midnight
+// Run cleanup once a day at midnight
 setInterval(() => {
     const now = new Date();
     console.log('Checking cleanup time:', now.toISOString());
@@ -764,7 +764,7 @@ setInterval(() => {
         console.log('Midnight detected, running cleanup...');
         cleanupPastBookings();
     }
-}, 60 * 1000); // Check every minute
+}, 24 * 60 * 60 * 1000); // Check once a day
 
 // Add end date update functionality
 const updateEndDate = async () => {
@@ -791,4 +791,4 @@ const updateEndDate = async () => {
 // Run end date update check every hour
 setInterval(() => {
     updateEndDate();
-}, 60 * 60 * 1000); // Check every hour
+}, 60 * 1000); // Check every hour
