@@ -150,42 +150,58 @@ const createTables = async () => {
     try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS bookings (
-                                                    id SERIAL PRIMARY KEY,
-                                                    phone_number TEXT NOT NULL,
-                                                    first_name TEXT NOT NULL,
-                                                    last_name TEXT NOT NULL,
-                                                    day DATE NOT NULL,
-                                                    start_hour INTEGER NOT NULL,
-                                                    end_hour INTEGER NOT NULL,
-                                                    role TEXT DEFAULT 'user'
+                id SERIAL PRIMARY KEY,
+                phone_number TEXT NOT NULL,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                day DATE NOT NULL,
+                start_hour INTEGER NOT NULL,
+                end_hour INTEGER NOT NULL,
+                role TEXT DEFAULT 'user'
             )
         `);
 
         await pool.query(`
             CREATE TABLE IF NOT EXISTS notifications (
-                                                         id SERIAL PRIMARY KEY,
-                                                         email TEXT NOT NULL,
-                                                         day DATE NOT NULL,
-                                                         UNIQUE(email, day)
-                )
-        `);
-
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS admins (
-                                                  id SERIAL PRIMARY KEY,
-                                                  first_name TEXT NOT NULL,
-                                                  password_hash TEXT NOT NULL
+                id SERIAL PRIMARY KEY,
+                email TEXT NOT NULL,
+                day DATE NOT NULL,
+                UNIQUE(email, day)
             )
         `);
 
         await pool.query(`
-        CREATE TABLE IF NOT EXISTS "AvailabilityStatus" (
-            "id" SERIAL PRIMARY KEY,
-            "targetDate" DATE UNIQUE NOT NULL,
-            "status" BOOLEAN NOT NULL DEFAULT false,
-            "comment" TEXT
-);
-        `)
+            CREATE TABLE IF NOT EXISTS admins (
+                id SERIAL PRIMARY KEY,
+                first_name TEXT NOT NULL,
+                password_hash TEXT NOT NULL
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS "AvailabilityStatus" (
+                "id" SERIAL PRIMARY KEY,
+                "targetDate" DATE UNIQUE NOT NULL,
+                "status" BOOLEAN NOT NULL DEFAULT false,
+                "comment" TEXT
+            )
+        `);
+
+        // Add end_date table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS end_date (
+                id SERIAL PRIMARY KEY,
+                end_date DATE NOT NULL
+            )
+        `);
+
+        // Initialize end_date if empty
+        const endDateCheck = await pool.query('SELECT * FROM end_date LIMIT 1');
+        if (endDateCheck.rows.length === 0) {
+            const initialEndDate = new Date();
+            initialEndDate.setDate(initialEndDate.getDate() + 14);
+            await pool.query('INSERT INTO end_date (end_date) VALUES ($1)', [initialEndDate.toISOString().split('T')[0]]);
+        }
 
         console.log("Tables created or already exist.");
     } catch (err) {
@@ -533,7 +549,7 @@ setInterval(async () => {
     } catch (err) {
         console.error("Error updating end date:", err);
     }
-}, 60 * 60 * 1000); // Check every hour instead of every day
+}, 60 * 60 * 1000); // Check every hour
 
 const getMondayBeforeEndDate = async () => {
     try {
@@ -749,3 +765,30 @@ setInterval(() => {
         cleanupPastBookings();
     }
 }, 60 * 1000); // Check every minute
+
+// Add end date update functionality
+const updateEndDate = async () => {
+    try {
+        const endDateResult = await pool.query('SELECT end_date FROM end_date LIMIT 1');
+        if (endDateResult.rows.length === 0) return;
+
+        const currentEndDate = new Date(endDateResult.rows[0].end_date);
+        const today = new Date();
+        
+        // Check if it's the end date and it's 13:00 or later
+        if (currentEndDate.toDateString() === today.toDateString() && today.getHours() >= 13) {
+            const newEndDate = new Date(currentEndDate);
+            newEndDate.setDate(currentEndDate.getDate() + 14);
+
+            await pool.query('UPDATE end_date SET end_date = $1', [newEndDate.toISOString().split('T')[0]]);
+            console.log(`End date automatically updated to ${newEndDate.toISOString().split('T')[0]}`);
+        }
+    } catch (err) {
+        console.error("Error updating end date:", err);
+    }
+};
+
+// Run end date update check every hour
+setInterval(() => {
+    updateEndDate();
+}, 60 * 60 * 1000); // Check every hour
