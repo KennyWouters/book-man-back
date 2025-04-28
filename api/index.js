@@ -538,8 +538,8 @@ setInterval(async () => {
         const currentEndDate = new Date(endDateResult.rows[0].end_date);
         const today = new Date();
         
-        // Add 2 hours to match local timezone (UTC+2)
-        const localHour = today.getHours() + 2;
+        // Get local time in UTC+2
+        const localHour = new Date(today.getTime() + (2 * 60 * 60 * 1000)).getHours();
         
         console.log('Debug - Current End Date:', currentEndDate.toISOString());
         console.log('Debug - Today:', today.toISOString());
@@ -800,8 +800,8 @@ const updateEndDate = async () => {
         const currentEndDate = new Date(endDateResult.rows[0].end_date);
         const today = new Date();
         
-        // Add 2 hours to match local timezone (UTC+2)
-        const localHour = today.getHours() + 2;
+        // Get local time in UTC+2
+        const localHour = new Date(today.getTime() + (2 * 60 * 60 * 1000)).getHours();
         
         console.log('Debug - Current End Date:', currentEndDate.toISOString());
         console.log('Debug - Today:', today.toISOString());
