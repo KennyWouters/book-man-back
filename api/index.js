@@ -787,13 +787,22 @@ const updateEndDate = async () => {
         const currentEndDate = new Date(endDateResult.rows[0].end_date);
         const today = new Date();
         
+        console.log('Debug - Current End Date:', currentEndDate.toISOString());
+        console.log('Debug - Today:', today.toISOString());
+        console.log('Debug - Current Hour:', today.getHours());
+        console.log('Debug - Date Comparison:', currentEndDate.toDateString() === today.toDateString());
+        
         // Check if it's the end date and it's 13:00 or later
         if (currentEndDate.toDateString() === today.toDateString() && today.getHours() >= 13) {
             const newEndDate = new Date(currentEndDate);
             newEndDate.setDate(currentEndDate.getDate() + 14);
 
+            console.log('Debug - New End Date:', newEndDate.toISOString());
+            
             await pool.query('UPDATE end_date SET end_date = $1', [newEndDate.toISOString().split('T')[0]]);
             console.log(`End date automatically updated to ${newEndDate.toISOString().split('T')[0]}`);
+        } else {
+            console.log('Debug - Update conditions not met');
         }
     } catch (err) {
         console.error("Error updating end date:", err);
