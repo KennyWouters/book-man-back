@@ -826,7 +826,7 @@ const updateEndDate = async () => {
     }
 };
 
-// Run end date update check every minute
+// Run end date update check every 2 days
 setInterval(() => {
     updateEndDate();
-}, 60 * 1000); // Check every minute
+}, 2 * 24 * 60 * 60 * 1000); // Check every 2 days
