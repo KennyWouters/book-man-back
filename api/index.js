@@ -752,19 +752,31 @@ const cleanupPastBookings = async () => {
     }
 };
 
-// Run cleanup immediately when server starts
-cleanupPastBookings();
-
 // Run cleanup once a day at midnight
+let lastCleanupDate = null;
+
 setInterval(() => {
     const now = new Date();
-    console.log('Checking cleanup time:', now.toISOString());
+    const today = now.toISOString().split('T')[0];
     
-    if (now.getHours() === 0 && now.getMinutes() === 0) {
-        console.log('Midnight detected, running cleanup...');
+    // If we haven't run cleanup today or it's the first run
+    if (!lastCleanupDate || lastCleanupDate !== today) {
+        console.log('Running cleanup for today...');
         cleanupPastBookings();
+        lastCleanupDate = today;
     }
 }, 24 * 60 * 60 * 1000); // Check once a day
+
+// Run cleanup immediately when server starts
+const initialCleanup = async () => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    console.log('Running initial cleanup...');
+    await cleanupPastBookings();
+    lastCleanupDate = today;
+};
+
+initialCleanup();
 
 // Add end date update functionality
 const updateEndDate = async () => {
