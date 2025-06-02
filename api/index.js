@@ -436,7 +436,7 @@ app.post("/admin/login", async (req, res) => {
             });
         });
 
-        /*console.log('Login successful, session saved:', {
+        console.log('Login successful, session saved:', {
             sessionId: req.sessionID,
             adminId: req.session.adminId,
             firstName: req.session.firstName,
@@ -452,7 +452,7 @@ app.post("/admin/login", async (req, res) => {
             firstName: admin.first_name,
             message: "Login successful",
             sessionId: req.sessionID
-        });*/
+        });
 
     } catch (err) {
         console.error('Login error:', err);
