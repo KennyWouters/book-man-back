@@ -436,12 +436,12 @@ app.post("/admin/login", async (req, res) => {
             });
         });
 
-        console.log('Login successful, session saved:', {
+        /*console.log('Login successful, session saved:', {
             sessionId: req.sessionID,
             adminId: req.session.adminId,
             firstName: req.session.firstName,
             cookie: req.session.cookie
-        });
+        });*/
 
         // Set a custom header to confirm session creation
         res.set('X-Session-Created', 'true');
