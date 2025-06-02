@@ -912,7 +912,7 @@ app.post('/api/admin/end-date', async (req, res) => {
 });
 
 // Add GET endpoint to retrieve current end date
-app.get('/api/admin/end-date', isAdminAuthenticated, async (req, res) => {
+app.get('/api/admin/end-date', async (req, res) => {
     try {
         const result = await pool.query('SELECT end_date FROM end_date ORDER BY id DESC LIMIT 1');
         
