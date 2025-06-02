@@ -849,23 +849,40 @@ app.post('/api/admin/end-date', isAdminAuthenticated, async (req, res) => {
         // Set the time to 13:00
         parsedDate.setHours(13, 0, 0, 0);
 
-        // Update or insert the end date
-        await pool.query(
-            `INSERT INTO end_date (end_date) 
-             VALUES ($1)
-             ON CONFLICT ON CONSTRAINT end_date_pkey 
-             DO UPDATE SET end_date = $1
-             RETURNING *`,
-            [parsedDate.toISOString()]
-        );
+        // First, check if any record exists
+        const checkResult = await pool.query('SELECT id FROM end_date LIMIT 1');
+        
+        let result;
+        if (checkResult.rows.length === 0) {
+            // If no record exists, insert new record
+            result = await pool.query(
+                'INSERT INTO end_date (end_date) VALUES ($1) RETURNING *',
+                [parsedDate.toISOString()]
+            );
+        } else {
+            // If record exists, update it
+            result = await pool.query(
+                'UPDATE end_date SET end_date = $1 WHERE id = $2 RETURNING *',
+                [parsedDate.toISOString(), checkResult.rows[0].id]
+            );
+        }
 
-        res.json({ 
-            message: 'Date de fin mise à jour avec succès', 
-            endDate: parsedDate.toISOString() 
-        });
+        if (result.rows.length > 0) {
+            res.json({ 
+                success: true,
+                message: 'Date de fin mise à jour avec succès', 
+                endDate: result.rows[0].end_date 
+            });
+        } else {
+            throw new Error('No rows affected');
+        }
     } catch (error) {
         console.error('Error setting end date:', error);
-        res.status(500).json({ error: 'Échec de la mise à jour de la date de fin' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Échec de la mise à jour de la date de fin',
+            details: error.message 
+        });
     }
 });
 
@@ -875,12 +892,33 @@ app.get('/api/admin/end-date', isAdminAuthenticated, async (req, res) => {
         const result = await pool.query('SELECT end_date FROM end_date ORDER BY id DESC LIMIT 1');
         
         if (result.rows.length > 0) {
-            res.json({ endDate: result.rows[0].end_date });
+            res.json({
+                success: true,
+                endDate: result.rows[0].end_date
+            });
         } else {
-            res.json({ endDate: null });
+            // If no end date exists, create one two weeks from now
+            const defaultEndDate = new Date();
+            defaultEndDate.setDate(defaultEndDate.getDate() + 14);
+            defaultEndDate.setHours(13, 0, 0, 0);
+
+            const insertResult = await pool.query(
+                'INSERT INTO end_date (end_date) VALUES ($1) RETURNING end_date',
+                [defaultEndDate.toISOString()]
+            );
+
+            res.json({
+                success: true,
+                endDate: insertResult.rows[0].end_date,
+                isDefault: true
+            });
         }
     } catch (error) {
         console.error('Error getting end date:', error);
-        res.status(500).json({ error: 'Failed to get end date' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to get end date',
+            details: error.message
+        });
     }
 });
