@@ -830,3 +830,35 @@ const updateEndDate = async () => {
 setInterval(() => {
     updateEndDate();
 }, 2 * 24 * 60 * 60 * 1000); // Check every 2 days
+
+// Admin endpoint to set end date
+app.post('/admin/end-date', isAdminAuthenticated, async (req, res) => {
+    try {
+        const { endDate } = req.body;
+        
+        if (!endDate) {
+            return res.status(400).json({ error: 'End date is required' });
+        }
+
+        // Parse and validate the date
+        const parsedDate = new Date(endDate);
+        if (isNaN(parsedDate.getTime())) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
+
+        // Update or insert the end date
+        await pool.query(
+            `INSERT INTO end_date (end_date) 
+             VALUES ($1)
+             ON CONFLICT (id) 
+             DO UPDATE SET end_date = $1
+             RETURNING *`,
+            [parsedDate]
+        );
+
+        res.json({ message: 'End date updated successfully', endDate: parsedDate });
+    } catch (error) {
+        console.error('Error setting end date:', error);
+        res.status(500).json({ error: 'Failed to set end date' });
+    }
+});
