@@ -841,7 +841,7 @@ setInterval(() => {
 }, 2 * 24 * 60 * 60 * 1000); // Check every 2 days
 */
 // Admin endpoint to set end date
-app.post('/api/admin/end-date', isAdminAuthenticated, async (req, res) => {
+app.post('/api/admin/end-date', async (req, res) => {
     console.log('Received end date update request:', {
         body: req.body,
         session: req.session,
