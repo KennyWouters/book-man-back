@@ -441,7 +441,7 @@ app.post("/admin/login", async (req, res) => {
             adminId: req.session.adminId,
             firstName: req.session.firstName,
             cookie: req.session.cookie
-        });*/
+        });
 
         // Set a custom header to confirm session creation
         res.set('X-Session-Created', 'true');
@@ -452,7 +452,7 @@ app.post("/admin/login", async (req, res) => {
             firstName: admin.first_name,
             message: "Login successful",
             sessionId: req.sessionID
-        });
+        });*/
 
     } catch (err) {
         console.error('Login error:', err);
