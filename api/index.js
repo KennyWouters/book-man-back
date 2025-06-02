@@ -832,7 +832,7 @@ setInterval(() => {
 }, 2 * 24 * 60 * 60 * 1000); // Check every 2 days
 
 // Admin endpoint to set end date
-app.post('/admin/end-date', isAdminAuthenticated, async (req, res) => {
+app.post('/api/admin/end-date', isAdminAuthenticated, async (req, res) => {
     try {
         const { endDate } = req.body;
         
@@ -846,19 +846,41 @@ app.post('/admin/end-date', isAdminAuthenticated, async (req, res) => {
             return res.status(400).json({ error: 'Invalid date format' });
         }
 
+        // Set the time to 13:00
+        parsedDate.setHours(13, 0, 0, 0);
+
         // Update or insert the end date
         await pool.query(
             `INSERT INTO end_date (end_date) 
              VALUES ($1)
-             ON CONFLICT (id) 
+             ON CONFLICT ON CONSTRAINT end_date_pkey 
              DO UPDATE SET end_date = $1
              RETURNING *`,
-            [parsedDate]
+            [parsedDate.toISOString()]
         );
 
-        res.json({ message: 'End date updated successfully', endDate: parsedDate });
+        res.json({ 
+            message: 'Date de fin mise à jour avec succès', 
+            endDate: parsedDate.toISOString() 
+        });
     } catch (error) {
         console.error('Error setting end date:', error);
-        res.status(500).json({ error: 'Failed to set end date' });
+        res.status(500).json({ error: 'Échec de la mise à jour de la date de fin' });
+    }
+});
+
+// Add GET endpoint to retrieve current end date
+app.get('/api/admin/end-date', isAdminAuthenticated, async (req, res) => {
+    try {
+        const result = await pool.query('SELECT end_date FROM end_date ORDER BY id DESC LIMIT 1');
+        
+        if (result.rows.length > 0) {
+            res.json({ endDate: result.rows[0].end_date });
+        } else {
+            res.json({ endDate: null });
+        }
+    } catch (error) {
+        console.error('Error getting end date:', error);
+        res.status(500).json({ error: 'Failed to get end date' });
     }
 });
