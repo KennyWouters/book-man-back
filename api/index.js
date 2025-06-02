@@ -51,7 +51,8 @@ const corsOptions = {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
+    exposedHeaders: ['set-cookie']
 };
 
 app.use(cors(corsOptions));
@@ -72,8 +73,10 @@ app.use(
         saveUninitialized: false,
         cookie: {
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 24 * 60 * 60 * 1000
+            sameSite: 'none',
+            maxAge: 24 * 60 * 60 * 1000,
+            path: '/',
+            domain: process.env.NODE_ENV === 'production' ? '.herokuapp.com' : undefined
         }
     })
 );
@@ -96,25 +99,22 @@ app.use((req, res, next) => {
 
 // Middleware to check if an admin is authenticated
 const isAdminAuthenticated = (req, res, next) => {
-    console.log('Checking authentication...');
+    console.log('=== Authentication Debug ===');
     console.log('Session:', req.session);
-    console.log('Session ID:', req.session.id);
-    console.log('AdminId:', req.session.adminId);
-    console.log('FirstName:', req.session.firstName);
     console.log('Cookies:', req.cookies);
-    console.log('Store contents:', store.sessions);
+    console.log('Headers:', req.headers);
 
-    if (!req.session) {
-        console.log('No session found');
-        return res.status(403).json({ error: "No session found" });
+    if (!req.session || !req.session.adminId) {
+        console.log('Authentication failed - No session or adminId');
+        return res.status(403).json({ 
+            error: "Not authenticated",
+            debug: {
+                hasSession: !!req.session,
+                hasAdminId: req.session ? !!req.session.adminId : false
+            }
+        });
     }
 
-    if (!req.session.adminId) {
-        console.log('No adminId in session');
-        return res.status(403).json({ error: "Not authenticated" });
-    }
-
-    console.log('Authentication successful');
     next();
 };
 
@@ -391,7 +391,11 @@ app.get("/admin", (req, res) => {
 
 // Updated login endpoint
 app.post("/admin/login", async (req, res) => {
-    console.log('Login attempt:', req.body);
+    console.log('Login attempt:', {
+        body: req.body,
+        headers: req.headers
+    });
+    
     const { firstName, password } = req.body;
     
     if (!firstName || !password) {
@@ -439,10 +443,15 @@ app.post("/admin/login", async (req, res) => {
             cookie: req.session.cookie
         });
 
+        // Set a custom header to confirm session creation
+        res.set('X-Session-Created', 'true');
+        
         res.json({ 
+            success: true,
             adminId: admin.id,
             firstName: admin.first_name,
-            message: "Login successful"
+            message: "Login successful",
+            sessionId: req.sessionID
         });
 
     } catch (err) {
@@ -529,7 +538,7 @@ app.get("/admin/logout", (req, res) => {
     });
 });
 
-// Automatic end date update
+/*// Automatic end date update
 setInterval(async () => {
     try {
         const endDateResult = await pool.query('SELECT end_date FROM end_date LIMIT 1');
@@ -563,7 +572,7 @@ setInterval(async () => {
         console.error("Error updating end date:", err);
     }
 }, 60 * 60 * 1000); // Check every hour
-
+*/
 const getMondayBeforeEndDate = async () => {
     try {
         const result = await pool.query('SELECT end_date FROM end_date LIMIT 1');
@@ -790,9 +799,9 @@ const initialCleanup = async () => {
 };
 
 initialCleanup();
-
+/*
 // Add end date update functionality
-/*const updateEndDate = async () => {
+const updateEndDate = async () => {
     try {
         const endDateResult = await pool.query('SELECT end_date FROM end_date LIMIT 1');
         if (endDateResult.rows.length === 0) return;
@@ -833,17 +842,29 @@ setInterval(() => {
 */
 // Admin endpoint to set end date
 app.post('/api/admin/end-date', async (req, res) => {
+    console.log('Received end date update request:', {
+        body: req.body,
+        session: req.session,
+        headers: req.headers
+    });
+
     try {
         const { endDate } = req.body;
         
         if (!endDate) {
-            return res.status(400).json({ error: 'End date is required' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'End date is required' 
+            });
         }
 
         // Parse and validate the date
         const parsedDate = new Date(endDate);
         if (isNaN(parsedDate.getTime())) {
-            return res.status(400).json({ error: 'Invalid date format' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid date format' 
+            });
         }
 
         // Set the time to 13:00
@@ -881,13 +902,17 @@ app.post('/api/admin/end-date', async (req, res) => {
         res.status(500).json({ 
             success: false,
             error: 'Échec de la mise à jour de la date de fin',
-            details: error.message 
+            details: error.message,
+            debug: {
+                hasSession: !!req.session,
+                hasAdminId: req.session ? !!req.session.adminId : false
+            }
         });
     }
 });
 
 // Add GET endpoint to retrieve current end date
-app.get('/api/admin/end-date', async (req, res) => {
+app.get('/api/admin/end-date', isAdminAuthenticated, async (req, res) => {
     try {
         const result = await pool.query('SELECT end_date FROM end_date ORDER BY id DESC LIMIT 1');
         
